@@ -5,7 +5,6 @@ use crate::model::{
 };
 use reqwest::blocking::Client as BlockingClient;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
-use reqwest::Client as AsyncClient;
 use std::env;
 use url::Url;
 
@@ -86,23 +85,6 @@ impl NewsApiClient<BlockingClient> {
             Err(ApiClientError::InvalidResponse(response_text))
         }
     }
-}
-
-impl NewsApiClient<AsyncClient> {
-    // pub fn new_async(api_key: &str) -> Self {
-    //     NewsApiClient {
-    //         client: AsyncClient::new(),
-    //         api_key: api_key.to_string(),
-    //         base_url: Url::parse(NEWS_API_URI).unwrap(),
-    //     }
-    // }
-    //
-    // pub fn new_async_from_env() -> Self {
-    //     match env::var("NEWS_API_KEY") {
-    //         Ok(api_key) => NewsApiClient::new_async(&api_key),
-    //         Err(_) => panic!("NEWS_API_KEY is not set"),
-    //     }
-    // }
 }
 
 impl<T> NewsApiClient<T> {
