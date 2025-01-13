@@ -121,37 +121,42 @@ impl<T> NewsApiClient<T> {
     ) {
         url.set_path(TOP_HEADLINES_ENDPOINT);
         url.query_pairs_mut().clear();
-        if let Some(country) = request.get_country() {
-            url.query_pairs_mut()
-                .append_pair("country", &country.to_string());
-        }
 
-        if let Some(category) = request.get_category() {
-            url.query_pairs_mut()
-                .append_pair("category", &category.to_string());
-        }
-
-        if let Some(sources) = request.get_sources() {
-            url.query_pairs_mut()
-                .append_pair("sources", &sources.to_string());
-        }
-
-        if !request.get_search_term().is_empty() {
-            url.query_pairs_mut()
-                .append_pair("q", request.get_search_term());
-        }
-
-        if *request.get_page_size() > 1 {
-            url.query_pairs_mut()
-                .append_pair("pageSize", &request.get_page_size().to_string());
-        }
-
-        if *request.get_page() > 1 {
-            url.query_pairs_mut()
-                .append_pair("page", &request.get_page().to_string());
+        for (key, value) in Self::get_top_headlines_query_params(request) {
+            url.query_pairs_mut().append_pair(&key, &value);
         }
 
         url.query_pairs_mut().finish();
+    }
+
+    fn get_top_headlines_query_params(request: &GetTopHeadlinesRequest) -> Vec<(String, String)> {
+        let mut query_params = Vec::new();
+
+        if let Some(country) = request.get_country() {
+            query_params.push(("country".to_string(), country.to_string()));
+        }
+
+        if let Some(category) = request.get_category() {
+            query_params.push(("category".to_string(), category.to_string()));
+        }
+
+        if let Some(sources) = request.get_sources() {
+            query_params.push(("sources".to_string(), sources.to_string()));
+        }
+
+        if !request.get_search_term().is_empty() {
+            query_params.push(("q".to_string(), request.get_search_term().to_string()));
+        }
+
+        if *request.get_page_size() > 1 {
+            query_params.push(("pageSize".to_string(), request.get_page_size().to_string()));
+        }
+
+        if *request.get_page() > 1 {
+            query_params.push(("page".to_string(), request.get_page().to_string()));
+        }
+
+        query_params
     }
 
     fn get_endpoint_with_query_params_for_everything(
