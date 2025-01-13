@@ -1,4 +1,4 @@
-use crate::constant::NEWS_API_CLIENT_USER_AGENT;
+use crate::constant::{NEWS_API_CLIENT_USER_AGENT, NEWS_API_KEY_ENV};
 use crate::error::ApiClientError;
 use crate::model::{
     GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
@@ -30,9 +30,9 @@ impl NewsApiClient<BlockingClient> {
     }
 
     pub fn from_env() -> Self {
-        match env::var("NEWS_API_KEY") {
+        match env::var(NEWS_API_KEY_ENV) {
             Ok(api_key) => NewsApiClient::new(&api_key),
-            Err(_) => panic!("NEWS_API_KEY is not set"),
+            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
         }
     }
 
