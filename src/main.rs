@@ -2,7 +2,6 @@ mod client;
 mod constant;
 mod error;
 mod model;
-mod util;
 
 use chrono::{TimeZone, Utc};
 use client::NewsApiClient;
