@@ -31,6 +31,7 @@ pub enum ApiClientErrorCode {
 
 #[derive(Debug, Deserialize)]
 pub struct ApiClientErrorResponse {
+    pub status: String,
     pub code: ApiClientErrorCode,
     pub message: String,
 }
