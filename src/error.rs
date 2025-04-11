@@ -31,7 +31,8 @@ pub enum ApiClientErrorCode {
 
 #[derive(Debug, Deserialize)]
 pub struct ApiClientErrorResponse {
-    pub status: String,
+    #[allow(dead_code)]
+    pub status: String, // required for deserialization, even if unused
     pub code: ApiClientErrorCode,
     pub message: String,
 }
