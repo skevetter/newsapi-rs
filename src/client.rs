@@ -1,16 +1,24 @@
 use crate::constant::{NEWS_API_CLIENT_USER_AGENT, NEWS_API_KEY_ENV};
-use crate::error::ApiClientError;
+use crate::error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 use crate::model::{
     GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
 };
 use reqwest::blocking::Client as BlockingClient;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
+use serde::{Deserialize, Serialize};
 use std::env;
 use url::Url;
 
 const NEWS_API_URI: &str = "https://newsapi.org/";
 const TOP_HEADLINES_ENDPOINT: &str = "/v2/top-headlines";
 const EVERYTHING_ENDPOINT: &str = "/v2/everything";
+
+#[derive(Debug, Deserialize, Serialize)]
+struct NewsApiErrorResponse {
+    status: String,
+    code: Option<String>,
+    message: Option<String>,
+}
 
 #[derive(Clone, Debug)]
 pub struct NewsApiClient<T> {
@@ -35,6 +43,36 @@ impl NewsApiClient<BlockingClient> {
         }
     }
 
+    fn parse_error_response(&self, response_text: String) -> ApiClientError {
+        match serde_json::from_str::<NewsApiErrorResponse>(&response_text) {
+            Ok(error_response) => {
+                let error_code = match error_response.code.as_deref() {
+                    Some("apiKeyDisabled") => ApiClientErrorCode::ApiKeyDisabled,
+                    Some("apiKeyExhausted") => ApiClientErrorCode::ApiKeyExhausted,
+                    Some("apiKeyInvalid") => ApiClientErrorCode::ApiKeyInvalid,
+                    Some("apiKeyMissing") => ApiClientErrorCode::ApiKeyMissing,
+                    Some("parameterInvalid") => ApiClientErrorCode::ParameterInvalid,
+                    Some("parametersMissing") => ApiClientErrorCode::ParametersMissing,
+                    Some("rateLimited") => ApiClientErrorCode::RateLimited,
+                    Some("sourcesTooMany") => ApiClientErrorCode::SourcesTooMany,
+                    Some("sourceDoesNotExist") => ApiClientErrorCode::SourceDoesNotExist,
+                    _ => ApiClientErrorCode::UnexpectedError,
+                };
+
+                ApiClientError::InvalidResponse(ApiClientErrorResponse {
+                    status: error_response.status,
+                    code: error_code,
+                    message: error_response.message.unwrap_or_else(|| "Unknown error".to_string()),
+                })
+            },
+            Err(_) => ApiClientError::InvalidResponse(ApiClientErrorResponse {
+                status: "error".to_string(),
+                code: ApiClientErrorCode::UnexpectedError,
+                message: "Failed to parse error response".to_string(),
+            }),
+        }
+    }
+
     pub fn get_everything(
         self,
         request: &GetEverythingRequest,
@@ -56,7 +94,7 @@ impl NewsApiClient<BlockingClient> {
             Ok(everything_response)
         } else {
             let response_text = response.text()?;
-            Err(ApiClientError::InvalidResponse(response_text))
+            Err(self.parse_error_response(response_text))
         }
     }
 
@@ -82,7 +120,7 @@ impl NewsApiClient<BlockingClient> {
             Ok(headline_response)
         } else {
             let response_text = response.text()?;
-            Err(ApiClientError::InvalidResponse(response_text))
+            Err(self.parse_error_response(response_text))
         }
     }
 }
