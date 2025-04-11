@@ -68,7 +68,19 @@ impl fmt::Display for ApiClientError {
         match self {
             ApiClientError::Http(err) => write!(f, "HTTP error: {}", err),
             ApiClientError::InvalidRequest(msg) => write!(f, "Invalid request: {}", msg),
-            ApiClientError::InvalidResponse(response) => write!(f, "Invalid response: {} - {}", response.code, response.message),
+            ApiClientError::InvalidResponse(response) => {
+                // Special handling for ParameterInvalid due to subscription limitation
+                if let ApiClientErrorCode::ParameterInvalid = response.code {
+                    if response.message.contains("as far back as") && response.message.contains("upgrade to a paid plan") {
+                        return write!(
+                            f,
+                            "Subscription limitation: {} - {}",
+                            response.code, response.message
+                        );
+                    }
+                }
+                write!(f, "Invalid response: {} - {}", response.code, response.message)
+            }
             ApiClientError::InvalidHeaderValue(err) => write!(f, "Invalid header value: {}", err),
         }
     }
