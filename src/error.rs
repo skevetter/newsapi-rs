@@ -1,21 +1,35 @@
 use std::error::Error;
 use std::fmt;
+use serde::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ApiClientErrorCode {
+    #[serde(rename = "apiKeyDisabled")]
     ApiKeyDisabled,
+    #[serde(rename = "apiKeyExhausted")]
     ApiKeyExhausted,
+    #[serde(rename = "apiKeyInvalid")]
     ApiKeyInvalid,
+    #[serde(rename = "apiKeyMissing")]
     ApiKeyMissing,
+    #[serde(rename = "parameterInvalid")]
     ParameterInvalid,
+    #[serde(rename = "parametersMissing")]
     ParametersMissing,
+    #[serde(rename = "rateLimited")]
     RateLimited,
+    #[serde(rename = "sourcesTooMany")]
     SourcesTooMany,
+    #[serde(rename = "sourceDoesNotExist")]
     SourceDoesNotExist,
+    #[serde(rename = "unexpectedError")]
     UnexpectedError,
+    #[serde(other)]
+    Unknown,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct ApiClientErrorResponse {
     pub status: String,
     pub code: ApiClientErrorCode,
@@ -43,6 +57,7 @@ impl fmt::Display for ApiClientErrorCode {
             ApiClientErrorCode::SourcesTooMany => write!(f, "sourcesTooMany"),
             ApiClientErrorCode::SourceDoesNotExist => write!(f, "sourceDoesNotExist"),
             ApiClientErrorCode::UnexpectedError => write!(f, "unexpectedError"),
+            ApiClientErrorCode::Unknown => write!(f, "unknown"),
         }
     }
 }
