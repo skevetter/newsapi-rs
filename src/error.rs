@@ -67,10 +67,17 @@ impl fmt::Display for ApiClientError {
             ApiClientError::Http(err) => write!(f, "HTTP error: {}", err),
             ApiClientError::InvalidRequest(msg) => write!(f, "Invalid request: {}", msg),
             ApiClientError::InvalidResponse(response) => {
+                // Logging for debugging error code flow
+                eprintln!(
+                    "[ApiClientError::InvalidResponse] code: {:?}, message: {}",
+                    response.code, response.message
+                );
                 // Special handling for ParameterInvalid due to subscription limitation and HTTP 426
-                // (assume the caller can pass status code if needed, or you can add it to the struct if not present)
                 if let ApiClientErrorCode::ParameterInvalid = response.code {
                     if response.message.contains("upgrade to a paid plan") {
+                        eprintln!(
+                            "[ApiClientError::InvalidResponse] Special case: NewsAPI plan historical data limit hit."
+                        );
                         return write!(
                             f,
                             "You have reached your NewsAPI plan's historical data limit. Upgrade to a paid plan to access older articles."
