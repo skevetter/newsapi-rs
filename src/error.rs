@@ -74,8 +74,8 @@ impl fmt::Display for ApiClientError {
                     if response.message.contains("as far back as") && response.message.contains("upgrade to a paid plan") {
                         return write!(
                             f,
-                            "Subscription limitation: {} - {}",
-                            response.code, response.message
+                            "You have reached a NewsAPI subscription limitation: {}",
+                            response.message
                         );
                     }
                 }
