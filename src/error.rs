@@ -1,6 +1,6 @@
+use serde::Deserialize;
 use std::error::Error;
 use std::fmt;
-use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,8 +31,6 @@ pub enum ApiClientErrorCode {
 
 #[derive(Debug, Deserialize)]
 pub struct ApiClientErrorResponse {
-    #[allow(dead_code)]
-    pub status: String, // required for deserialization, even if unused
     pub code: ApiClientErrorCode,
     pub message: String,
 }
@@ -79,7 +77,11 @@ impl fmt::Display for ApiClientError {
                         );
                     }
                 }
-                write!(f, "Invalid response: {} - {}", response.code, response.message)
+                write!(
+                    f,
+                    "Invalid response: {} - {}",
+                    response.code, response.message
+                )
             }
             ApiClientError::InvalidHeaderValue(err) => write!(f, "Invalid header value: {}", err),
         }
