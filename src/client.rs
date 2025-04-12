@@ -376,7 +376,6 @@ mod tests {
 
     #[test]
     fn test_parse_error_response() {
-        // Test API key error
         let error_json =
             r#"{"status":"error","code":"apiKeyInvalid","message":"Your API key is invalid"}"#;
         let error =
@@ -391,7 +390,6 @@ mod tests {
             _ => panic!("Expected InvalidResponse error"),
         }
 
-        // Test parameter error
         let error_json =
             r#"{"status":"error","code":"parameterInvalid","message":"Invalid parameter"}"#;
         let error =
@@ -404,7 +402,6 @@ mod tests {
             _ => panic!("Expected InvalidResponse error"),
         }
 
-        // Test unparseable response
         let error_json = r#"invalid json"#;
         let error =
             NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
@@ -433,8 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_top_headlines_validate_request() {
-        // Valid request with country
+    fn test_top_headlines_validate_request_country_and_category() {
         let request = GetTopHeadlinesRequest::builder()
             .country(Country::US)
             .category(NewsCategory::Business)
@@ -444,8 +440,10 @@ mod tests {
             .build()
             .unwrap();
         assert!(NewsApiClient::<reqwest::Client>::top_headlines_validate_request(&request).is_ok());
+    }
 
-        // Valid request with sources only
+    #[test]
+    fn test_top_headlines_validate_request_sources_only() {
         let request = GetTopHeadlinesRequest::builder()
             .sources("bbc-news,cnn".to_string())
             .search_term(String::new())
@@ -454,8 +452,10 @@ mod tests {
             .build()
             .unwrap();
         assert!(NewsApiClient::<reqwest::Client>::top_headlines_validate_request(&request).is_ok());
+    }
 
-        // Invalid request with both sources and country
+    #[test]
+    fn test_top_headlines_validate_request_sources_with_country() {
         let request = GetTopHeadlinesRequest::builder()
             .sources("bbc-news".to_string())
             .country(Country::US)
@@ -464,10 +464,11 @@ mod tests {
             .page(1)
             .build();
 
-        // This should return an error from the builder
         assert!(request.is_err());
+    }
 
-        // Invalid request with both sources and category
+    #[test]
+    fn test_top_headlines_validate_request_sources_with_category() {
         let request = GetTopHeadlinesRequest::builder()
             .sources("bbc-news".to_string())
             .category(NewsCategory::Business)
@@ -476,7 +477,6 @@ mod tests {
             .page(1)
             .build();
 
-        // This should return an error from the builder
         assert!(request.is_err());
     }
 
@@ -555,10 +555,8 @@ mod tests {
             ]
         }"#;
 
-        // Create a mock server using the async version
         let mut server = mockito::Server::new_async().await;
 
-        // Set up the mock directly on the server
         let _m = server
             .mock("GET", "/v2/everything")
             .match_query(mockito::Matcher::Any)
@@ -640,10 +638,8 @@ mod tests {
             "message": "Your API key is invalid or incorrect"
         }"#;
 
-        // Create a mock server using the async version
         let mut server = mockito::Server::new_async().await;
 
-        // Set up the mock directly on the server
         let _m = server
             .mock("GET", "/v2/everything")
             .match_query(mockito::Matcher::Any)
@@ -652,7 +648,6 @@ mod tests {
             .create_async()
             .await;
 
-        // Create a client using the server URL
         let mut client = NewsApiClient::new_async("test-api-key");
         client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
 
@@ -671,12 +666,10 @@ mod tests {
         }
     }
 
-    // Test for the blocking client would require the 'blocking' feature
     #[cfg(feature = "blocking")]
     mod blocking_tests {
-        use mockito::Mock;
-
         use super::*;
+        use mockito::Mock;
 
         #[test]
         fn test_get_everything_blocking() {
