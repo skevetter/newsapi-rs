@@ -1,23 +1,27 @@
+/// This example requires the "blocking" feature to be enabled
+/// Run with: cargo run --example everything_search --features blocking
 use chrono::Utc;
 use env_logger::Env;
-use newsapi_rs::client::NewsApiClient;
-use newsapi_rs::constant::DEFAULT_LOG_LEVEL;
-use newsapi_rs::error::ApiClientError;
-use newsapi_rs::model::{GetEverythingRequest, Language};
+use newsapi_rs::{
+    client::NewsApiClient,
+    constant::DEFAULT_LOG_LEVEL,
+    error::ApiClientError,
+    model::{GetEverythingRequest, Language},
+};
 
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
 
     dotenvy::dotenv().ok();
 
+    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
+    // let client = NewsApiClient::new("api_key");
     let client = NewsApiClient::from_env();
-
-    let last_month = Utc::now() - chrono::Duration::days(30);
 
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(last_month)
+        .start_date(Utc::now() - chrono::Duration::days(30))
         .end_date(Utc::now())
         .page_size(1)
         .build();

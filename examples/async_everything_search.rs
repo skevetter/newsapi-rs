@@ -1,4 +1,5 @@
-use chrono::{TimeZone, Utc};
+/// Run with: cargo run --example async_everything_search
+use chrono::Utc;
 use env_logger::Env;
 use newsapi_rs::client::NewsApiClient;
 use newsapi_rs::constant::DEFAULT_LOG_LEVEL;
@@ -11,13 +12,15 @@ async fn main() {
 
     dotenvy::dotenv().ok();
 
+    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
+    // let client = NewsApiClient::new_async("api_key");
     let client = NewsApiClient::from_env_async();
 
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(Utc.with_ymd_and_hms(2025, 3, 14, 0, 0, 0).unwrap())
-        .end_date(Utc.with_ymd_and_hms(2025, 3, 20, 0, 0, 0).unwrap())
+        .start_date(Utc::now() - chrono::Duration::days(30))
+        .end_date(Utc::now())
         .page_size(1)
         .build();
 
