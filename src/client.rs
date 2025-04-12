@@ -1,10 +1,11 @@
 use crate::constant::{
     EVERYTHING_ENDPOINT, NEWS_API_CLIENT_USER_AGENT, NEWS_API_KEY_ENV, NEWS_API_URI,
-    TOP_HEADLINES_ENDPOINT,
+    SOURCES_ENDPOINT, TOP_HEADLINES_ENDPOINT,
 };
 use crate::error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 use crate::model::{
-    GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
+    GetEverythingRequest, GetEverythingResponse, GetSourcesRequest, GetSourcesResponse,
+    GetTopHeadlinesRequest, TopHeadlinesResponse,
 };
 #[cfg(feature = "blocking")]
 use crate::retry::retry_blocking;
@@ -261,6 +262,37 @@ mod blocking {
             })
         }
 
+        pub fn get_sources(
+            self,
+            request: &GetSourcesRequest,
+        ) -> Result<GetSourcesResponse, ApiClientError> {
+            retry_blocking(self.retry_strategy, self.max_retries, || {
+                log::debug!("Request: {:?}", request);
+
+                let mut url = self.base_url.clone();
+                NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_sources(
+                    &mut url, request,
+                );
+                log::debug!("Request URL: {}", url.as_str());
+
+                let headers = self.get_request_headers()?;
+                let response = self.client.get(url.as_str()).headers(headers).send()?;
+                let status = response.status();
+                log::debug!("Response status: {:?}", status);
+
+                if status.is_success() {
+                    let response_text = response.text()?;
+                    match serde_json::from_str::<GetSourcesResponse>(&response_text) {
+                        Ok(sources_response) => Ok(sources_response),
+                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                    }
+                } else {
+                    let response_text = response.text()?;
+                    Err(self.parse_error_response(response_text, status.as_u16()))
+                }
+            })
+        }
+
         pub fn with_retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
             self.retry_strategy = strategy;
             self.max_retries = max_retries;
@@ -360,6 +392,41 @@ impl NewsApiClient<reqwest::Client> {
                         "Failed to parse response: {}",
                         e
                     ))),
+                }
+            } else {
+                let response_text = response.text().await?;
+                Err(self.parse_error_response(response_text, status.as_u16()))
+            }
+        })
+        .await
+    }
+
+    pub async fn get_sources(
+        &self,
+        request: &GetSourcesRequest,
+    ) -> Result<GetSourcesResponse, ApiClientError> {
+        retry(self.retry_strategy, self.max_retries, || async {
+            log::debug!("Request: {:?}", request);
+
+            let mut url = self.base_url.clone();
+            Self::get_endpoint_with_query_params_for_sources(&mut url, request);
+            log::debug!("Request URL: {}", url.as_str());
+
+            let headers = self.get_request_headers()?;
+            let response = self
+                .client
+                .get(url.as_str())
+                .headers(headers)
+                .send()
+                .await?;
+            let status = response.status();
+            log::debug!("Response status: {:?}", status);
+
+            if status.is_success() {
+                let response_text = response.text().await?;
+                match serde_json::from_str::<GetSourcesResponse>(&response_text) {
+                    Ok(sources_response) => Ok(sources_response),
+                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
                 }
             } else {
                 let response_text = response.text().await?;
@@ -549,6 +616,36 @@ impl<T> NewsApiClient<T> {
 
         if *request.get_page() > 1 {
             query_params.push(("page".to_string(), request.get_page().to_string()));
+        }
+
+        query_params
+    }
+
+    fn get_endpoint_with_query_params_for_sources(url: &mut Url, request: &GetSourcesRequest) {
+        url.set_path(SOURCES_ENDPOINT);
+        url.query_pairs_mut().clear();
+
+        let query_params = Self::get_sources_query_params(request);
+        for (key, value) in query_params {
+            url.query_pairs_mut().append_pair(&key, &value);
+        }
+
+        url.query_pairs_mut().finish();
+    }
+
+    fn get_sources_query_params(request: &GetSourcesRequest) -> Vec<(String, String)> {
+        let mut query_params = Vec::new();
+
+        if let Some(category) = request.get_category() {
+            query_params.push(("category".to_string(), category.to_string()));
+        }
+
+        if let Some(language) = request.get_language() {
+            query_params.push(("language".to_string(), language.to_string().to_lowercase()));
+        }
+
+        if let Some(country) = request.get_country() {
+            query_params.push(("country".to_string(), country.to_string()));
         }
 
         query_params

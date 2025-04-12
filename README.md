@@ -155,16 +155,14 @@ async fn main() {
 
 ## Running Examples
 
-Run the async examples:
+Run the async example:
 ```bash
-cargo run --example top_headlines
-cargo run --example everything_search
 cargo run --example async_everything_search
 ```
 
 Run the blocking example (with the blocking feature enabled):
 ```bash
-cargo run --example blocking_example --features blocking
+cargo run --example everything_search --features blocking
 ```
 
 ## License

@@ -131,7 +131,8 @@ pub mod retry;
 pub use client::NewsApiClient;
 pub use error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 pub use model::{
-    GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
+    GetEverythingRequest, GetEverythingResponse, GetSourcesRequest, GetSourcesResponse,
+    GetTopHeadlinesRequest, Source, TopHeadlinesResponse,
 };
 pub use retry::{retry, RetryStrategy};
 

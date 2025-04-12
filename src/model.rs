@@ -123,14 +123,6 @@ pub enum Language {
 
 #[derive(Serialize, Deserialize, Debug, Getters)]
 #[getset(get = "pub with_prefix")]
-pub struct Source {
-    id: Option<String>,
-
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Getters)]
-#[getset(get = "pub with_prefix")]
 pub struct Article {
     source: Source,
 
@@ -406,4 +398,122 @@ pub struct GetEverythingResponse {
     total_results: i32,
 
     articles: Vec<Article>,
+}
+
+/// Source representation from NewsAPI
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Source {
+    id: Option<String>,
+    name: String,
+    description: Option<String>,
+    url: Option<String>,
+    category: Option<String>,
+    language: Option<String>,
+    country: Option<String>,
+}
+
+impl Source {
+    pub fn get_id(&self) -> Option<&String> {
+        self.id.as_ref()
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_description(&self) -> Option<&String> {
+        self.description.as_ref()
+    }
+
+    pub fn get_url(&self) -> Option<&String> {
+        self.url.as_ref()
+    }
+
+    pub fn get_category(&self) -> Option<&String> {
+        self.category.as_ref()
+    }
+
+    pub fn get_language(&self) -> Option<&String> {
+        self.language.as_ref()
+    }
+
+    pub fn get_country(&self) -> Option<&String> {
+        self.country.as_ref()
+    }
+}
+
+/// Response for the sources endpoint
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetSourcesResponse {
+    status: String,
+    sources: Vec<Source>,
+}
+
+impl GetSourcesResponse {
+    pub fn get_status(&self) -> &str {
+        &self.status
+    }
+
+    pub fn get_sources(&self) -> &[Source] {
+        &self.sources
+    }
+}
+
+/// Builder for sources request
+#[derive(Debug, Default)]
+pub struct GetSourcesRequestBuilder {
+    category: Option<NewsCategory>,
+    language: Option<Language>,
+    country: Option<Country>,
+}
+
+impl GetSourcesRequestBuilder {
+    pub fn category(mut self, category: NewsCategory) -> Self {
+        self.category = Some(category);
+        self
+    }
+
+    pub fn language(mut self, language: Language) -> Self {
+        self.language = Some(language);
+        self
+    }
+
+    pub fn country(mut self, country: Country) -> Self {
+        self.country = Some(country);
+        self
+    }
+
+    pub fn build(self) -> GetSourcesRequest {
+        GetSourcesRequest {
+            category: self.category,
+            language: self.language,
+            country: self.country,
+        }
+    }
+}
+
+/// Request parameters for the sources endpoint
+#[derive(Debug)]
+pub struct GetSourcesRequest {
+    category: Option<NewsCategory>,
+    language: Option<Language>,
+    country: Option<Country>,
+}
+
+impl GetSourcesRequest {
+    pub fn builder() -> GetSourcesRequestBuilder {
+        GetSourcesRequestBuilder::default()
+    }
+
+    pub fn get_category(&self) -> Option<&NewsCategory> {
+        self.category.as_ref()
+    }
+
+    pub fn get_language(&self) -> Option<&Language> {
+        self.language.as_ref()
+    }
+
+    pub fn get_country(&self) -> Option<&Country> {
+        self.country.as_ref()
+    }
 }
