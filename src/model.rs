@@ -121,14 +121,16 @@ pub enum Language {
     ZH,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Getters)]
+#[getset(get = "pub with_prefix")]
 pub struct Source {
     id: Option<String>,
 
     name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Getters)]
+#[getset(get = "pub with_prefix")]
 pub struct Article {
     source: Source,
 
@@ -241,7 +243,8 @@ impl GetTopHeadlinesRequestBuilder {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Getters)]
+#[getset(get = "pub with_prefix")]
 pub struct TopHeadlinesResponse {
     status: String,
 

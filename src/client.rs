@@ -79,15 +79,15 @@ impl NewsApiClient<BlockingClient> {
         self,
         request: &GetEverythingRequest,
     ) -> Result<GetEverythingResponse, ApiClientError> {
-        log::info!("Request: {:?}", request);
+        log::debug!("Request: {:?}", request);
 
         let mut url = self.base_url.clone();
         Self::get_endpoint_with_query_params_for_everything(&mut url, request);
-        log::info!("Request URL: {}", url.as_str());
+        log::debug!("Request URL: {}", url.as_str());
 
         let headers = self.get_request_headers()?;
         let response = self.client.get(url.as_str()).headers(headers).send()?;
-        log::info!("Response status: {:?}", response.status());
+        log::debug!("Response status: {:?}", response.status());
 
         if response.status().is_success() {
             let response_text = response.text()?;
@@ -105,16 +105,16 @@ impl NewsApiClient<BlockingClient> {
         self,
         request: &GetTopHeadlinesRequest,
     ) -> Result<TopHeadlinesResponse, ApiClientError> {
-        log::info!("Request: {:?}", request);
+        log::debug!("Request: {:?}", request);
         Self::top_headlines_validate_request(request)?;
 
         let mut url = self.base_url.clone();
         Self::get_endpoint_with_query_params_for_top_headlines(&mut url, request);
-        log::info!("Request URL: {}", url.as_str());
+        log::debug!("Request URL: {}", url.as_str());
 
         let headers = self.get_request_headers()?;
         let response = self.client.get(url.as_str()).headers(headers).send()?;
-        log::info!("Response status: {:?}", response.status());
+        log::debug!("Response status: {:?}", response.status());
 
         if response.status().is_success() {
             let response_text = response.text()?;
@@ -149,7 +149,7 @@ impl<T> NewsApiClient<T> {
     fn top_headlines_validate_request(
         request: &GetTopHeadlinesRequest,
     ) -> Result<(), ApiClientError> {
-        log::info!("Validating request");
+        log::debug!("Validating request");
         if request.get_sources().is_some()
             && (request.get_country().is_some() || request.get_category().is_some())
         {

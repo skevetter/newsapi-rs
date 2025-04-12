@@ -13,6 +13,14 @@ path = "src/lib.rs"
 name = "newsapi"
 path = "src/main.rs"
 
+[[example]]
+name = "top_headlines"
+path = "examples/top_headlines.rs"
+
+[[example]]
+name = "everything_search"
+path = "examples/everything_search.rs"
+
 [dependencies]
 chrono = { version = "0.4.39", features = ["serde"] }
 dotenvy = { version = "0.15.7", features = ["clap"] }
