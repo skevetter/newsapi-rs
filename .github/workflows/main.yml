@@ -1,0 +1,18 @@
+name: Rust
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: build
+        run: |
+          cargo build --all-features
+          cargo clippy --all-features -- -D warnings
+          cargo test --all-features

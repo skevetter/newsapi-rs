@@ -1,0 +1,157 @@
+{
+    "name": "Devcontainer",
+    "build": {
+        "dockerfile": "./Dockerfile",
+        "context": "."
+    },
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=devcontainer-zshhistory,target=/cmd_history,type=volume"
+    ],
+    "features": {
+        "ghcr.io/devcontainers-extra/features/act:1": {},
+        "ghcr.io/devcontainers-extra/features/fzf:1": {},
+        "ghcr.io/devcontainers-extra/features/mise:1": {},
+        "ghcr.io/devcontainers-extra/features/pre-commit:2": {}
+    },
+    "postCreateCommand": ".devcontainer/post_create.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Catppuccin.catppuccin-vsc-icons",
+                "Catppuccin.catppuccin-vsc",
+                "EditorConfig.EditorConfig",
+                "esbenp.prettier-vscode",
+                "foxundermoon.shell-format",
+                "GitHub.copilot-chat",
+                "GitHub.copilot",
+                "mhutchie.git-graph",
+                "ms-azuretools.vscode-docker",
+                "ms-vscode-remote.remote-containers",
+                "ms-vscode.makefile-tools",
+                "oderwat.indent-rainbow",
+                "rust-lang.rust-analyzer",
+                "shardulm94.trailing-spaces",
+                "streetsidesoftware.code-spell-checker",
+                "VisualStudioExptTeam.intellicode-api-usage-examples",
+                "VisualStudioExptTeam.vscodeintellicode-completions",
+                "VisualStudioExptTeam.vscodeintellicode"
+            ],
+            "settings": {
+                // Editor
+                "editor.tabSize": 4,
+                "editor.fontSize": 18,
+                "editor.fontFamily": "'MesloLGS Nerd Font', 'FiraCode Nerd Font', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace",
+                "editor.fontLigatures": false,
+                // Terminal
+                "terminal.integrated.fontSize": 18,
+                "terminal.integrated.scrollback": 10000,
+                "terminal.integrated.fontFamily": "'MesloLGS Nerd Font', 'FiraCode Nerd Font', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace",
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/usr/bin/zsh",
+                        "args": ["-l", "-i"], // See https://github.com/microsoft/vscode/issues/143061
+                        "env": {}
+                    },
+                    "bash": {
+                        "path": "/bin/bash",
+                        "args": ["-l"],
+                        "env": {}
+                    }
+                },
+                // Workbench
+                "workbench.colorTheme": "Catppuccin Macchiato",
+                "workbench.iconTheme": "catppuccin-macchiato",
+                "workbench.editor.limit.enabled": true,
+                "workbench.editor.limit.value": 10, // Max editor tabs open
+                // Copilot
+                "github.copilot.enable": {
+                    "*": true,
+                    "plaintext": false,
+                    "markdown": false,
+                    "scminput": false
+                },
+                // Git
+                "git.autofetch": true,
+                "git.blame.editorDecoration.enabled": true,
+                // Diff Editor
+                "diffEditor.renderSideBySide": false,
+                "diffEditor.hideUnchangedRegions.enabled": true,
+                "diffEditor.ignoreTrimWhitespace": false,
+                // Indent Rainbow
+                "indentRainbow.lightIndicatorStyleLineWidth": 4,
+                // Resource Monitor
+                "resmon.show.cpufreq": false,
+                "resmon.show.battery": false,
+                "resmon.show.mem": false,
+                // Files
+                "files.autoSave": "afterDelay",
+                "files.autoSaveDelay": 3000, // 3 seconds
+                "files.watcherExclude": {
+                    "**/build/**": true,
+                    "**/.git/objects/**": true,
+                    "**/.git/subtree-cache/**": true,
+                    "**/node_modules/*/**": true,
+                    "**/.hg/store/**": true
+                },
+                "files.exclude": {
+                    "apollo-overrides": true,
+                    "release-info": true,
+                    "src/*/build": false,
+                    "build": false,
+                    "env": false,
+                    "packageInfo*": true,
+                    "**/.git": true,
+                    "**/.svn": true,
+                    "**/.hg": true,
+                    "**/CVS": true,
+                    "**/.DS_Store": true,
+                    "**/Thumbs.db": true,
+                    "**/.Trash-1000": true
+                },
+                // Search
+                "search.exclude": {
+                    "build": true,
+                    "env": false,
+                    "src/*/build": true,
+                    "**/node_modules": true,
+                    "**/bower_components": true,
+                    "**/*.code-search": true
+                },
+                // Rust
+                "[rust, rust-analyzer]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+                    "editor.formatOnSave": true
+                },
+                "rust-analyzer.cargo.features": "all",
+                // Telemetry
+                "redhat.telemetry.enabled": false,
+                // Spelling
+                "cSpell": {
+                    "enabled": true,
+                    "language": "en,en-GB",
+                    "showStatus": false,
+                    "ignorePaths": [
+                        "**/node_modules/**",
+                        "**/build/**",
+                        "**/.git/**",
+                        "**/.github/**",
+                        "**/.svn/**",
+                        "**/.hg/**",
+                        "**/CVS/**",
+                        "**/.DS_Store/**",
+                        "**/Thumbs.db/**",
+                        "**/.devcontainer/**",
+                        "**/*devcontainer.json",
+                        "**/*.*rc",
+                        "**/*.*config",
+                        "**/*.*ignore",
+                        "**/Dockerfile",
+                        "**/*.env"
+                    ]
+                }
+            }
+        }
+    }
+}
