@@ -39,13 +39,6 @@ mod blocking {
             }
         }
 
-        pub fn from_env() -> Self {
-            match env::var(NEWS_API_KEY_ENV) {
-                Ok(api_key) => NewsApiClient::new(&api_key),
-                Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
-            }
-        }
-
         fn parse_error_response(&self, response_text: String) -> ApiClientError {
             NewsApiClient::<BlockingClient>::parse_error_response_internal(response_text)
         }
@@ -195,6 +188,18 @@ impl NewsApiClient<reqwest::Client> {
         } else {
             let response_text = response.text().await?;
             Err(self.parse_error_response(response_text))
+        }
+    }
+}
+
+// Add this top-level function outside the blocking module
+#[cfg(feature = "blocking")]
+impl NewsApiClient<reqwest::blocking::Client> {
+    /// Creates a new NewsApiClient instance using the API key from the environment variable
+    pub fn from_env() -> Self {
+        match env::var(NEWS_API_KEY_ENV) {
+            Ok(api_key) => Self::new(&api_key),
+            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
         }
     }
 }
