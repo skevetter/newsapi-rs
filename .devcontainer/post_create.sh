@@ -6,6 +6,13 @@ sudo cp .devcontainer/welcome.txt /usr/local/etc/vscode-dev-containers/first-run
 
 sudo chown -R vscode:vscode /cmd_history
 
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+sudo apt update && sudo apt install pkg-config -y
+cargo build && cargo test --all-features
+
+sudo ln -s /home/vscode/.cargo/bin/cargo /usr/bin/cargo
+
 pre-commit install --install-hooks
 pre-commit run --all-files
 
@@ -17,10 +24,3 @@ tar xf lazygit.tar.gz lazygit
 sudo install lazygit -D -t /usr/local/bin/
 cd - >/dev/null
 rm -rf "$TMP_DIR"
-
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-
-sudo apt update && apt install pkg-config -y
-cargo build && cargo test --all-features
-
-sudo ln -s /home/vscode/.cargo/bin/cargo /usr/bin/cargo
