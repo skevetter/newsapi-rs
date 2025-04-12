@@ -1,17 +1,17 @@
-/// This example requires the "blocking" feature to be enabled
-/// Run with: cargo run --example everything_search --features blocking
 use chrono::Utc;
 use newsapi_rs::client::NewsApiClient;
 use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetEverythingRequest, Language};
 
+/// This example requires the "blocking" feature to be enabled
+/// Run with: cargo run --example everything_search --features blocking
 #[cfg(feature = "blocking")]
 fn main() {
     dotenvy::dotenv().ok();
 
     // Provide your API key here or set it in the environment variable NEWS_API_KEY
     // let client = NewsApiClient::new("api_key");
-    let client = NewsApiClient::from_env();
+    let client = NewsApiClient::from_env_blocking();
 
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))

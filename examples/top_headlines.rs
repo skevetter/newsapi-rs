@@ -1,14 +1,16 @@
-/// This example requires the "blocking" feature to be enabled
-/// Run with: cargo run --example top_headlines --features blocking
 use newsapi_rs::client::NewsApiClient;
 use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
 
+/// This example requires the "blocking" feature to be enabled
+/// Run with: cargo run --example top_headlines --features blocking
 #[cfg(feature = "blocking")]
 fn main() {
     dotenvy::dotenv().ok();
 
-    let client = NewsApiClient::from_env();
+    let client = NewsApiClient::builder_blocking()
+        .build()
+        .expect("Failed to build NewsApiClient");
 
     let request = GetTopHeadlinesRequest::builder()
         .category(NewsCategory::Business)

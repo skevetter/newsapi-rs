@@ -1,56 +1,60 @@
-/// Run with: cargo run --example async_everything_search
-use chrono::Utc;
 use newsapi_rs::client::NewsApiClient;
-use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetEverythingRequest, Language};
-use newsapi_rs::retry::RetryStrategy;
-use std::time::Duration;
 
+/// Run with: cargo run --example async_everything_search
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
-    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
-    // Create client with retry support - will retry up to 3 times with exponential backoff
-    let client = NewsApiClient::from_env_async()
-        .with_retry(RetryStrategy::Constant(Duration::from_secs(1)), 3);
+    println!("Example 1: Using the builder pattern");
+    let builder_client = NewsApiClient::builder()
+        .build()
+        .expect("Failed to build NewsApiClient");
 
-    // Or without retry (default):
-    // let client = NewsApiClient::from_env_async();
-
-    let everything_request = GetEverythingRequest::builder()
+    let request1 = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(Utc::now() - chrono::Duration::days(30))
-        .end_date(Utc::now())
         .page_size(1)
         .build();
 
-    match client.get_everything(&everything_request).await {
+    match builder_client.get_everything(&request1).await {
         Ok(response) => {
-            println!("Total Results: {}", response.get_total_results());
+            println!(
+                "Builder client - Total Results: {}",
+                response.get_total_results()
+            );
             println!("Articles retrieved: {}", response.get_articles().len());
-
-            for (i, article) in response.get_articles().iter().enumerate() {
-                println!("Article #{}: {}", i + 1, article.get_title());
-                println!("  Source: {}", article.get_source().get_name());
-                println!("  Published: {}", article.get_published_at());
-                println!("  URL: {}", article.get_url());
-                println!();
+            if let Some(article) = response.get_articles().first() {
+                println!("First article: {}", article.get_title());
             }
         }
         Err(err) => {
-            eprintln!(
-                "Error [{}]: {}",
-                match &err {
-                    ApiClientError::InvalidResponse(response) => response.code.to_string(),
-                    _ => err.to_string(),
-                },
-                match &err {
-                    ApiClientError::InvalidResponse(response) => response.message.to_string(),
-                    _ => err.to_string(),
-                }
+            eprintln!("Builder client error: {}", err);
+        }
+    }
+
+    println!("\nExample 2: Using from_env");
+    let env_client = NewsApiClient::from_env();
+
+    let request2 = GetEverythingRequest::builder()
+        .search_term(String::from("Bitcoin+crypto"))
+        .language(Language::EN)
+        .page_size(1)
+        .build();
+
+    match env_client.get_everything(&request2).await {
+        Ok(response) => {
+            println!(
+                "Env client - Total Results: {}",
+                response.get_total_results()
             );
+            println!("Articles retrieved: {}", response.get_articles().len());
+            if let Some(article) = response.get_articles().first() {
+                println!("First article: {}", article.get_title());
+            }
+        }
+        Err(err) => {
+            eprintln!("Env client error: {}", err);
         }
     }
 }

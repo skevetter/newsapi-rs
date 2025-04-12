@@ -30,13 +30,151 @@ pub struct NewsApiClient<T> {
     max_retries: usize,
 }
 
+pub struct NewsApiClientBuilder {
+    api_key: Option<String>,
+    base_url: Option<Url>,
+    retry_strategy: RetryStrategy,
+    max_retries: usize,
+}
+
+impl NewsApiClientBuilder {
+    pub fn new() -> Self {
+        Self {
+            api_key: None,
+            base_url: Some(Url::parse(NEWS_API_URI).unwrap()),
+            retry_strategy: RetryStrategy::default(),
+            max_retries: 0,
+        }
+    }
+
+    pub fn api_key(mut self, api_key: impl Into<String>) -> Self {
+        self.api_key = Some(api_key.into());
+        self
+    }
+
+    pub fn base_url(mut self, url: impl AsRef<str>) -> Result<Self, url::ParseError> {
+        self.base_url = Some(Url::parse(url.as_ref())?);
+        Ok(self)
+    }
+
+    pub fn retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
+        self.retry_strategy = strategy;
+        self.max_retries = max_retries;
+        self
+    }
+
+    pub fn from_env() -> Self {
+        match env::var(NEWS_API_KEY_ENV) {
+            Ok(api_key) => Self::new().api_key(api_key),
+            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+        }
+    }
+
+    pub fn build(self) -> Result<NewsApiClient<reqwest::Client>, String> {
+        let api_key = match self.api_key {
+            Some(key) => key,
+            None => match env::var(NEWS_API_KEY_ENV) {
+                Ok(key) => key,
+                Err(_) => {
+                    return Err(format!(
+                        "API key must be provided either explicitly or via {} environment variable",
+                        NEWS_API_KEY_ENV
+                    ))
+                }
+            },
+        };
+
+        let base_url = self
+            .base_url
+            .unwrap_or_else(|| Url::parse(NEWS_API_URI).unwrap());
+
+        Ok(NewsApiClient {
+            client: reqwest::Client::new(),
+            api_key,
+            base_url,
+            retry_strategy: self.retry_strategy,
+            max_retries: self.max_retries,
+        })
+    }
+}
+
+#[cfg(feature = "blocking")]
+pub struct BlockingNewsApiClientBuilder {
+    api_key: Option<String>,
+    base_url: Option<Url>,
+    retry_strategy: RetryStrategy,
+    max_retries: usize,
+}
+
+#[cfg(feature = "blocking")]
+impl BlockingNewsApiClientBuilder {
+    pub fn new() -> Self {
+        Self {
+            api_key: None,
+            base_url: Some(Url::parse(NEWS_API_URI).unwrap()),
+            retry_strategy: RetryStrategy::default(),
+            max_retries: 0,
+        }
+    }
+
+    pub fn api_key(mut self, api_key: impl Into<String>) -> Self {
+        self.api_key = Some(api_key.into());
+        self
+    }
+
+    pub fn base_url(mut self, url: impl AsRef<str>) -> Result<Self, url::ParseError> {
+        self.base_url = Some(Url::parse(url.as_ref())?);
+        Ok(self)
+    }
+
+    pub fn retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
+        self.retry_strategy = strategy;
+        self.max_retries = max_retries;
+        self
+    }
+
+    pub fn from_env() -> Self {
+        match env::var(NEWS_API_KEY_ENV) {
+            Ok(api_key) => Self::new().api_key(api_key),
+            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+        }
+    }
+
+    pub fn build(self) -> Result<NewsApiClient<reqwest::blocking::Client>, String> {
+        let api_key = match self.api_key {
+            Some(key) => key,
+            None => match env::var(NEWS_API_KEY_ENV) {
+                Ok(key) => key,
+                Err(_) => {
+                    return Err(format!(
+                        "API key must be provided either explicitly or via {} environment variable",
+                        NEWS_API_KEY_ENV
+                    ))
+                }
+            },
+        };
+
+        let base_url = self
+            .base_url
+            .unwrap_or_else(|| Url::parse(NEWS_API_URI).unwrap());
+
+        Ok(NewsApiClient {
+            client: reqwest::blocking::Client::new(),
+            api_key,
+            base_url,
+            retry_strategy: self.retry_strategy,
+            max_retries: self.max_retries,
+        })
+    }
+}
+
 #[cfg(feature = "blocking")]
 mod blocking {
     use super::*;
     use reqwest::blocking::Client as BlockingClient;
 
     impl NewsApiClient<BlockingClient> {
-        pub fn new(api_key: &str) -> Self {
+        pub fn new_blocking(api_key: &str) -> Self {
             NewsApiClient {
                 client: BlockingClient::new(),
                 api_key: api_key.to_string(),
@@ -44,6 +182,10 @@ mod blocking {
                 retry_strategy: RetryStrategy::default(),
                 max_retries: 0,
             }
+        }
+
+        pub fn builder_blocking() -> super::BlockingNewsApiClientBuilder {
+            super::BlockingNewsApiClientBuilder::new()
         }
 
         fn parse_error_response(&self, response_text: String, status_code: u16) -> ApiClientError {
@@ -119,7 +261,6 @@ mod blocking {
             })
         }
 
-        /// Configure retry strategy for this client
         pub fn with_retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
             self.retry_strategy = strategy;
             self.max_retries = max_retries;
@@ -129,7 +270,7 @@ mod blocking {
 }
 
 impl NewsApiClient<reqwest::Client> {
-    pub fn new_async(api_key: &str) -> Self {
+    pub fn new(api_key: &str) -> Self {
         NewsApiClient {
             client: reqwest::Client::new(),
             api_key: api_key.to_string(),
@@ -139,9 +280,13 @@ impl NewsApiClient<reqwest::Client> {
         }
     }
 
-    pub fn from_env_async() -> Self {
+    pub fn builder() -> NewsApiClientBuilder {
+        NewsApiClientBuilder::new()
+    }
+
+    pub fn from_env() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
-            Ok(api_key) => NewsApiClient::new_async(&api_key),
+            Ok(api_key) => NewsApiClient::new(&api_key),
             Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
         }
     }
@@ -224,7 +369,6 @@ impl NewsApiClient<reqwest::Client> {
         .await
     }
 
-    /// Configure retry strategy for this client
     pub fn with_retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
         self.retry_strategy = strategy;
         self.max_retries = max_retries;
@@ -232,21 +376,17 @@ impl NewsApiClient<reqwest::Client> {
     }
 }
 
-// Add this top-level function outside the blocking module
 #[cfg(feature = "blocking")]
 impl NewsApiClient<reqwest::blocking::Client> {
-    /// Creates a new NewsApiClient instance using the API key from the environment variable
-    pub fn from_env() -> Self {
+    pub fn from_env_blocking() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
-            Ok(api_key) => Self::new(&api_key),
+            Ok(api_key) => Self::new_blocking(&api_key),
             Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
         }
     }
 }
 
-// Shared implementation for both client types
 impl<T> NewsApiClient<T> {
-    // Internal method for parsing error responses
     fn parse_error_response_internal(response_text: String, status_code: u16) -> ApiClientError {
         match serde_json::from_str::<NewsApiErrorResponse>(&response_text) {
             Ok(error_response) => {
@@ -279,7 +419,6 @@ impl<T> NewsApiClient<T> {
                 })
             }
             Err(_) => {
-                // For unparseable responses, try to determine the error from status code
                 let error_code = if status_code == 429 {
                     ApiClientErrorCode::RateLimited
                 } else {
@@ -421,15 +560,14 @@ mod tests {
     use super::*;
     use crate::model::{Country, Language, NewsCategory};
     use chrono::{DateTime, Utc};
-    use mockito::{self};
+    use mockito;
     use std::collections::HashMap;
     use std::str::FromStr;
+    use std::time::Duration;
 
-    // Helper function to create a client with mocked base URL
     fn create_test_client() -> NewsApiClient<reqwest::Client> {
         let api_key = "test-api-key";
-        let mut client = NewsApiClient::new_async(api_key);
-        // Get the mock server URL - using server_address() instead of server_url()
+        let mut client = NewsApiClient::new(api_key);
         let server = mockito::Server::new();
         let mock_url = server.url();
         client.base_url = Url::parse(&format!("http://{}", mock_url)).unwrap();
@@ -634,8 +772,7 @@ mod tests {
             .create_async()
             .await;
 
-        // Create a client using the server URL
-        let mut client = NewsApiClient::new_async("test-api-key");
+        let mut client = NewsApiClient::new("test-api-key");
         client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
 
         let request = GetEverythingRequest::builder()
@@ -679,7 +816,7 @@ mod tests {
             .with_body(mock_response)
             .create_async()
             .await;
-        let mut client = NewsApiClient::new_async("test-api-key");
+        let mut client = NewsApiClient::new("test-api-key");
         client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
 
         let request = GetTopHeadlinesRequest::builder()
@@ -707,7 +844,6 @@ mod tests {
         }"#;
 
         let mut server = mockito::Server::new_async().await;
-
         let _m = server
             .mock("GET", "/v2/everything")
             .match_query(mockito::Matcher::Any)
@@ -716,7 +852,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut client = NewsApiClient::new_async("test-api-key");
+        let mut client = NewsApiClient::new("test-api-key");
         client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
 
         let request = GetEverythingRequest::builder()
@@ -766,7 +902,7 @@ mod tests {
                 .with_body(mock_response)
                 .create();
 
-            let mut client = NewsApiClient::new("test-api-key");
+            let mut client = NewsApiClient::new_blocking("test-api-key");
             client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
             let request = GetEverythingRequest::builder()
                 .search_term("test".to_string())
@@ -780,5 +916,67 @@ mod tests {
                 "Test Title Blocking"
             );
         }
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        let client = NewsApiClient::<reqwest::Client>::builder()
+            .api_key("test-api-key")
+            .retry(RetryStrategy::Exponential(Duration::from_millis(100)), 3)
+            .build()
+            .unwrap();
+
+        assert_eq!(client.api_key, "test-api-key");
+        assert_eq!(client.max_retries, 3);
+    }
+
+    #[test]
+    fn test_builder_failure() {
+        let old_value = env::var(NEWS_API_KEY_ENV).ok();
+        env::remove_var(NEWS_API_KEY_ENV);
+        match NewsApiClient::builder().build() {
+            Ok(_) => {
+                if let Some(val) = old_value {
+                    env::set_var(NEWS_API_KEY_ENV, val);
+                }
+                panic!("Expected an error")
+            }
+            Err(e) => {
+                if let Some(val) = old_value {
+                    env::set_var(NEWS_API_KEY_ENV, val);
+                }
+                assert_eq!(
+                    e,
+                    format!(
+                        "API key must be provided either explicitly or via {} environment variable",
+                        NEWS_API_KEY_ENV
+                    )
+                )
+            }
+        }
+    }
+
+    #[test]
+    fn test_builder_from_env() {
+        // Temporarily set environment variable for test
+        std::env::set_var(NEWS_API_KEY_ENV, "env-api-key");
+
+        let client = NewsApiClientBuilder::from_env().build().unwrap();
+
+        assert_eq!(client.api_key, "env-api-key");
+        std::env::remove_var(NEWS_API_KEY_ENV);
+    }
+
+    #[cfg(feature = "blocking")]
+    #[test]
+    fn test_blocking_builder_pattern() {
+        let client = BlockingNewsApiClientBuilder::new()
+            .api_key("test-api-key")
+            .retry(RetryStrategy::Constant(Duration::from_secs(1)), 2)
+            .build()
+            .unwrap();
+
+        assert_eq!(client.api_key, "test-api-key");
+        assert_eq!(client.max_retries, 2);
     }
 }
