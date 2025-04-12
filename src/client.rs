@@ -525,4 +525,54 @@ mod tests {
         assert_eq!(params_map.get("page").unwrap(), "3");
         assert_eq!(params_map.get("pageSize").unwrap(), "20");
     }
+
+    // Test for the blocking client would require the 'blocking' feature
+    #[cfg(feature = "blocking")]
+    mod blocking_tests {
+        use mockito::Mock;
+
+        use super::*;
+
+        #[test]
+        fn test_get_everything_blocking() {
+            let mock_response = r#"{
+                "status": "ok",
+                "totalResults": 1,
+                "articles": [
+                    {
+                        "source": {"id": "test-source", "name": "Test Source"},
+                        "author": "Test Author",
+                        "title": "Test Title Blocking",
+                        "description": "Test Description",
+                        "url": "https://example.com/article1",
+                        "urlToImage": "https://example.com/image1.jpg",
+                        "publishedAt": "2023-05-01T12:00:00Z",
+                        "content": "Test content"
+                    }
+                ]
+            }"#;
+            let mut server = mockito::Server::new();
+            let _m: Mock = server
+                .mock("GET", "/v2/everything")
+                .match_query(mockito::Matcher::Any)
+                .with_status(200)
+                .with_header("content-type", "application/json")
+                .with_body(mock_response)
+                .create();
+
+            let mut client = NewsApiClient::new("test-api-key");
+            client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
+            let request = GetEverythingRequest::builder()
+                .search_term("test".to_string())
+                .build();
+            let response = client.get_everything(&request).unwrap();
+
+            assert_eq!(response.get_status(), "ok");
+            assert_eq!(*response.get_total_results(), 1);
+            assert_eq!(
+                response.get_articles()[0].get_title(),
+                "Test Title Blocking"
+            );
+        }
+    }
 }
