@@ -6,6 +6,9 @@ use crate::error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 use crate::model::{
     GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
 };
+#[cfg(feature = "blocking")]
+use crate::retry::retry_blocking;
+use crate::retry::{retry, RetryStrategy};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -23,6 +26,8 @@ pub struct NewsApiClient<T> {
     client: T,
     api_key: String,
     base_url: Url,
+    retry_strategy: RetryStrategy,
+    max_retries: usize,
 }
 
 #[cfg(feature = "blocking")]
@@ -36,71 +41,89 @@ mod blocking {
                 client: BlockingClient::new(),
                 api_key: api_key.to_string(),
                 base_url: Url::parse(NEWS_API_URI).unwrap(),
+                retry_strategy: RetryStrategy::default(),
+                max_retries: 0,
             }
         }
 
-        fn parse_error_response(&self, response_text: String) -> ApiClientError {
-            NewsApiClient::<BlockingClient>::parse_error_response_internal(response_text)
+        fn parse_error_response(&self, response_text: String, status_code: u16) -> ApiClientError {
+            NewsApiClient::<BlockingClient>::parse_error_response_internal(
+                response_text,
+                status_code,
+            )
         }
 
         pub fn get_everything(
             self,
             request: &GetEverythingRequest,
         ) -> Result<GetEverythingResponse, ApiClientError> {
-            log::debug!("Request: {:?}", request);
+            retry_blocking(self.retry_strategy, self.max_retries, || {
+                log::debug!("Request: {:?}", request);
 
-            let mut url = self.base_url.clone();
-            NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_everything(
-                &mut url, request,
-            );
-            log::debug!("Request URL: {}", url.as_str());
+                let mut url = self.base_url.clone();
+                NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_everything(
+                    &mut url, request,
+                );
+                log::debug!("Request URL: {}", url.as_str());
 
-            let headers = self.get_request_headers()?;
-            let response = self.client.get(url.as_str()).headers(headers).send()?;
-            log::debug!("Response status: {:?}", response.status());
+                let headers = self.get_request_headers()?;
+                let response = self.client.get(url.as_str()).headers(headers).send()?;
+                let status = response.status();
+                log::debug!("Response status: {:?}", status);
 
-            if response.status().is_success() {
-                let response_text = response.text()?;
-                match serde_json::from_str::<GetEverythingResponse>(&response_text) {
-                    Ok(everything_response) => Ok(everything_response),
-                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                if status.is_success() {
+                    let response_text = response.text()?;
+                    match serde_json::from_str::<GetEverythingResponse>(&response_text) {
+                        Ok(everything_response) => Ok(everything_response),
+                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                    }
+                } else {
+                    let response_text = response.text()?;
+                    Err(self.parse_error_response(response_text, status.as_u16()))
                 }
-            } else {
-                let response_text = response.text()?;
-                Err(self.parse_error_response(response_text))
-            }
+            })
         }
 
         pub fn get_top_headlines(
             self,
             request: &GetTopHeadlinesRequest,
         ) -> Result<TopHeadlinesResponse, ApiClientError> {
-            log::debug!("Request: {:?}", request);
-            NewsApiClient::<BlockingClient>::top_headlines_validate_request(request)?;
+            retry_blocking(self.retry_strategy, self.max_retries, || {
+                log::debug!("Request: {:?}", request);
+                NewsApiClient::<BlockingClient>::top_headlines_validate_request(request)?;
 
-            let mut url = self.base_url.clone();
-            NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_top_headlines(
-                &mut url, request,
-            );
-            log::debug!("Request URL: {}", url.as_str());
+                let mut url = self.base_url.clone();
+                NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_top_headlines(
+                    &mut url, request,
+                );
+                log::debug!("Request URL: {}", url.as_str());
 
-            let headers = self.get_request_headers()?;
-            let response = self.client.get(url.as_str()).headers(headers).send()?;
-            log::debug!("Response status: {:?}", response.status());
+                let headers = self.get_request_headers()?;
+                let response = self.client.get(url.as_str()).headers(headers).send()?;
+                let status = response.status();
+                log::debug!("Response status: {:?}", status);
 
-            if response.status().is_success() {
-                let response_text = response.text()?;
-                match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
-                    Ok(headline_response) => Ok(headline_response),
-                    Err(e) => Err(ApiClientError::InvalidRequest(format!(
-                        "Failed to parse response: {}",
-                        e
-                    ))),
+                if status.is_success() {
+                    let response_text = response.text()?;
+                    match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
+                        Ok(headline_response) => Ok(headline_response),
+                        Err(e) => Err(ApiClientError::InvalidRequest(format!(
+                            "Failed to parse response: {}",
+                            e
+                        ))),
+                    }
+                } else {
+                    let response_text = response.text()?;
+                    Err(self.parse_error_response(response_text, status.as_u16()))
                 }
-            } else {
-                let response_text = response.text()?;
-                Err(self.parse_error_response(response_text))
-            }
+            })
+        }
+
+        /// Configure retry strategy for this client
+        pub fn with_retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
+            self.retry_strategy = strategy;
+            self.max_retries = max_retries;
+            self
         }
     }
 }
@@ -111,6 +134,8 @@ impl NewsApiClient<reqwest::Client> {
             client: reqwest::Client::new(),
             api_key: api_key.to_string(),
             base_url: Url::parse(NEWS_API_URI).unwrap(),
+            retry_strategy: RetryStrategy::default(),
+            max_retries: 0,
         }
     }
 
@@ -121,74 +146,89 @@ impl NewsApiClient<reqwest::Client> {
         }
     }
 
-    fn parse_error_response(&self, response_text: String) -> ApiClientError {
-        NewsApiClient::<reqwest::Client>::parse_error_response_internal(response_text)
+    fn parse_error_response(&self, response_text: String, status_code: u16) -> ApiClientError {
+        NewsApiClient::<reqwest::Client>::parse_error_response_internal(response_text, status_code)
     }
 
     pub async fn get_everything(
         &self,
         request: &GetEverythingRequest,
     ) -> Result<GetEverythingResponse, ApiClientError> {
-        log::debug!("Request: {:?}", request);
+        retry(self.retry_strategy, self.max_retries, || async {
+            log::debug!("Request: {:?}", request);
 
-        let mut url = self.base_url.clone();
-        Self::get_endpoint_with_query_params_for_everything(&mut url, request);
-        log::debug!("Request URL: {}", url.as_str());
+            let mut url = self.base_url.clone();
+            Self::get_endpoint_with_query_params_for_everything(&mut url, request);
+            log::debug!("Request URL: {}", url.as_str());
 
-        let headers = self.get_request_headers()?;
-        let response = self
-            .client
-            .get(url.as_str())
-            .headers(headers)
-            .send()
-            .await?;
-        log::debug!("Response status: {:?}", response.status());
+            let headers = self.get_request_headers()?;
+            let response = self
+                .client
+                .get(url.as_str())
+                .headers(headers)
+                .send()
+                .await?;
+            let status = response.status();
+            log::debug!("Response status: {:?}", status);
 
-        if response.status().is_success() {
-            let response_text = response.text().await?;
-            match serde_json::from_str::<GetEverythingResponse>(&response_text) {
-                Ok(everything_response) => Ok(everything_response),
-                Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+            if status.is_success() {
+                let response_text = response.text().await?;
+                match serde_json::from_str::<GetEverythingResponse>(&response_text) {
+                    Ok(everything_response) => Ok(everything_response),
+                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                }
+            } else {
+                let response_text = response.text().await?;
+                Err(self.parse_error_response(response_text, status.as_u16()))
             }
-        } else {
-            let response_text = response.text().await?;
-            Err(self.parse_error_response(response_text))
-        }
+        })
+        .await
     }
 
     pub async fn get_top_headlines(
         &self,
         request: &GetTopHeadlinesRequest,
     ) -> Result<TopHeadlinesResponse, ApiClientError> {
-        log::debug!("Request: {:?}", request);
-        Self::top_headlines_validate_request(request)?;
+        retry(self.retry_strategy, self.max_retries, || async {
+            log::debug!("Request: {:?}", request);
+            Self::top_headlines_validate_request(request)?;
 
-        let mut url = self.base_url.clone();
-        Self::get_endpoint_with_query_params_for_top_headlines(&mut url, request);
-        log::debug!("Request URL: {}", url.as_str());
+            let mut url = self.base_url.clone();
+            Self::get_endpoint_with_query_params_for_top_headlines(&mut url, request);
+            log::debug!("Request URL: {}", url.as_str());
 
-        let headers = self.get_request_headers()?;
-        let response = self
-            .client
-            .get(url.as_str())
-            .headers(headers)
-            .send()
-            .await?;
-        log::debug!("Response status: {:?}", response.status());
+            let headers = self.get_request_headers()?;
+            let response = self
+                .client
+                .get(url.as_str())
+                .headers(headers)
+                .send()
+                .await?;
+            let status = response.status();
+            log::debug!("Response status: {:?}", status);
 
-        if response.status().is_success() {
-            let response_text = response.text().await?;
-            match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
-                Ok(headline_response) => Ok(headline_response),
-                Err(e) => Err(ApiClientError::InvalidRequest(format!(
-                    "Failed to parse response: {}",
-                    e
-                ))),
+            if status.is_success() {
+                let response_text = response.text().await?;
+                match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
+                    Ok(headline_response) => Ok(headline_response),
+                    Err(e) => Err(ApiClientError::InvalidRequest(format!(
+                        "Failed to parse response: {}",
+                        e
+                    ))),
+                }
+            } else {
+                let response_text = response.text().await?;
+                Err(self.parse_error_response(response_text, status.as_u16()))
             }
-        } else {
-            let response_text = response.text().await?;
-            Err(self.parse_error_response(response_text))
-        }
+        })
+        .await
+    }
+
+    /// Configure retry strategy for this client
+    pub fn with_retry(mut self, strategy: RetryStrategy, max_retries: usize) -> Self {
+        self.retry_strategy = strategy;
+        self.max_retries = max_retries;
+        self
     }
 }
 
@@ -207,7 +247,7 @@ impl NewsApiClient<reqwest::blocking::Client> {
 // Shared implementation for both client types
 impl<T> NewsApiClient<T> {
     // Internal method for parsing error responses
-    fn parse_error_response_internal(response_text: String) -> ApiClientError {
+    fn parse_error_response_internal(response_text: String, status_code: u16) -> ApiClientError {
         match serde_json::from_str::<NewsApiErrorResponse>(&response_text) {
             Ok(error_response) => {
                 let error_code = match error_response.code.as_deref() {
@@ -220,7 +260,14 @@ impl<T> NewsApiClient<T> {
                     Some("rateLimited") => ApiClientErrorCode::RateLimited,
                     Some("sourcesTooMany") => ApiClientErrorCode::SourcesTooMany,
                     Some("sourceDoesNotExist") => ApiClientErrorCode::SourceDoesNotExist,
-                    _ => ApiClientErrorCode::UnexpectedError,
+                    _ => {
+                        // Check for rate limiting based on status code
+                        if status_code == 429 {
+                            ApiClientErrorCode::RateLimited
+                        } else {
+                            ApiClientErrorCode::UnexpectedError
+                        }
+                    }
                 };
 
                 ApiClientError::InvalidResponse(ApiClientErrorResponse {
@@ -231,11 +278,26 @@ impl<T> NewsApiClient<T> {
                         .unwrap_or_else(|| "Unknown error".to_string()),
                 })
             }
-            Err(_) => ApiClientError::InvalidResponse(ApiClientErrorResponse {
-                status: "error".to_string(),
-                code: ApiClientErrorCode::UnexpectedError,
-                message: "Failed to parse error response".to_string(),
-            }),
+            Err(_) => {
+                // For unparseable responses, try to determine the error from status code
+                let error_code = if status_code == 429 {
+                    ApiClientErrorCode::RateLimited
+                } else {
+                    ApiClientErrorCode::UnexpectedError
+                };
+
+                ApiClientError::InvalidResponse(ApiClientErrorResponse {
+                    status: "error".to_string(),
+                    code: error_code,
+                    message: if response_text.contains("too many requests")
+                        || response_text.contains("rate limit")
+                    {
+                        "You have made too many requests. Rate limit exceeded.".to_string()
+                    } else {
+                        "Failed to parse error response".to_string()
+                    },
+                })
+            }
         }
     }
 
@@ -378,8 +440,10 @@ mod tests {
     fn test_parse_error_response() {
         let error_json =
             r#"{"status":"error","code":"apiKeyInvalid","message":"Your API key is invalid"}"#;
-        let error =
-            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+        let error = NewsApiClient::<reqwest::Client>::parse_error_response_internal(
+            error_json.to_string(),
+            400,
+        );
 
         match error {
             ApiClientError::InvalidResponse(response) => {
@@ -392,8 +456,10 @@ mod tests {
 
         let error_json =
             r#"{"status":"error","code":"parameterInvalid","message":"Invalid parameter"}"#;
-        let error =
-            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+        let error = NewsApiClient::<reqwest::Client>::parse_error_response_internal(
+            error_json.to_string(),
+            400,
+        );
 
         match error {
             ApiClientError::InvalidResponse(response) => {
@@ -403,8 +469,10 @@ mod tests {
         }
 
         let error_json = r#"invalid json"#;
-        let error =
-            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+        let error = NewsApiClient::<reqwest::Client>::parse_error_response_internal(
+            error_json.to_string(),
+            400,
+        );
 
         match error {
             ApiClientError::InvalidResponse(response) => {

@@ -3,14 +3,20 @@ use chrono::Utc;
 use newsapi_rs::client::NewsApiClient;
 use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetEverythingRequest, Language};
+use newsapi_rs::retry::RetryStrategy;
+use std::time::Duration;
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
-    // Provide your API key here or set it in the environment variable NEWS_API_KEY
-    // let client = NewsApiClient::new_async("api_key");
-    let client = NewsApiClient::from_env_async();
+    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
+    // Create client with retry support - will retry up to 3 times with exponential backoff
+    let client = NewsApiClient::from_env_async()
+        .with_retry(RetryStrategy::Constant(Duration::from_secs(1)), 3);
+
+    // Or without retry (default):
+    // let client = NewsApiClient::from_env_async();
 
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
