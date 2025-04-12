@@ -7,6 +7,7 @@ use chrono::{TimeZone, Utc};
 use client::NewsApiClient;
 use constant::DEFAULT_LOG_LEVEL;
 use env_logger::Env;
+use error::ApiClientError;
 use model::{GetEverythingRequest, GetTopHeadlinesRequest, Language, NewsCategory};
 
 fn main() {
@@ -26,14 +27,26 @@ fn main() {
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap())
-        .end_date(Utc.with_ymd_and_hms(2025, 1, 2, 0, 0, 0).unwrap())
+        .start_date(Utc.with_ymd_and_hms(2025, 2, 13, 0, 0, 0).unwrap())
+        .end_date(Utc.with_ymd_and_hms(2025, 3, 20, 0, 0, 0).unwrap())
         .page_size(5)
         .build();
-    let everything_response = client.get_everything(&everything_request).unwrap();
-    log::info!(
-        "Retrieved {:?} articles",
-        everything_response.get_articles().len()
-    );
-    log::info!("{:?}", everything_response);
+    match client.get_everything(&everything_request) {
+        Ok(everything_response) => {
+            log::info!(
+                "Retrieved {:?} articles",
+                everything_response.get_articles().len()
+            );
+            log::info!("{:?}", everything_response);
+        }
+        Err(err) => {
+            log::error!(
+                "{}",
+                match err {
+                    ApiClientError::InvalidResponse(response) => response.message.clone(),
+                    _ => err.to_string(),
+                }
+            );
+        }
+    };
 }

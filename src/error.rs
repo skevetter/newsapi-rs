@@ -5,25 +5,15 @@ use std::fmt;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ApiClientErrorCode {
-    #[serde(rename = "apiKeyDisabled")]
     ApiKeyDisabled,
-    #[serde(rename = "apiKeyExhausted")]
     ApiKeyExhausted,
-    #[serde(rename = "apiKeyInvalid")]
     ApiKeyInvalid,
-    #[serde(rename = "apiKeyMissing")]
     ApiKeyMissing,
-    #[serde(rename = "parameterInvalid")]
     ParameterInvalid,
-    #[serde(rename = "parametersMissing")]
     ParametersMissing,
-    #[serde(rename = "rateLimited")]
     RateLimited,
-    #[serde(rename = "sourcesTooMany")]
     SourcesTooMany,
-    #[serde(rename = "sourceDoesNotExist")]
     SourceDoesNotExist,
-    #[serde(rename = "unexpectedError")]
     UnexpectedError,
     #[serde(other)]
     Unknown,
@@ -69,27 +59,10 @@ impl fmt::Display for ApiClientError {
             ApiClientError::Http(err) => write!(f, "HTTP error: {}", err),
             ApiClientError::InvalidRequest(msg) => write!(f, "Invalid request: {}", msg),
             ApiClientError::InvalidResponse(response) => {
-                // Logging for debugging error code flow
-                eprintln!(
-                    "[ApiClientError::InvalidResponse] code: {:?}, message: {}",
-                    response.code, response.message
-                );
-                // Special handling for ParameterInvalid due to subscription limitation and HTTP 426
-                if let ApiClientErrorCode::ParameterInvalid = response.code {
-                    if response.message.contains("upgrade to a paid plan") {
-                        eprintln!(
-                            "[ApiClientError::InvalidResponse] Special case: NewsAPI plan historical data limit hit."
-                        );
-                        return write!(
-                            f,
-                            "You have reached your NewsAPI plan's historical data limit. Upgrade to a paid plan to access older articles."
-                        );
-                    }
-                }
                 write!(
                     f,
-                    "Invalid response: {} - {}",
-                    response.code, response.message
+                    "Invalid response: status={}, code={}, message={}",
+                    response.status, response.code, response.message
                 )
             }
             ApiClientError::InvalidHeaderValue(err) => write!(f, "Invalid header value: {}", err),

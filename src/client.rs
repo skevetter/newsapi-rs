@@ -62,9 +62,11 @@ impl NewsApiClient<BlockingClient> {
                 ApiClientError::InvalidResponse(ApiClientErrorResponse {
                     status: error_response.status,
                     code: error_code,
-                    message: error_response.message.unwrap_or_else(|| "Unknown error".to_string()),
+                    message: error_response
+                        .message
+                        .unwrap_or_else(|| "Unknown error".to_string()),
                 })
-            },
+            }
             Err(_) => ApiClientError::InvalidResponse(ApiClientErrorResponse {
                 status: "error".to_string(),
                 code: ApiClientErrorCode::UnexpectedError,
@@ -89,9 +91,10 @@ impl NewsApiClient<BlockingClient> {
 
         if response.status().is_success() {
             let response_text = response.text()?;
-            let everything_response =
-                serde_json::from_str::<GetEverythingResponse>(&response_text).unwrap();
-            Ok(everything_response)
+            match serde_json::from_str::<GetEverythingResponse>(&response_text) {
+                Ok(everything_response) => Ok(everything_response),
+                Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+            }
         } else {
             let response_text = response.text()?;
             Err(self.parse_error_response(response_text))
@@ -115,9 +118,13 @@ impl NewsApiClient<BlockingClient> {
 
         if response.status().is_success() {
             let response_text = response.text()?;
-            let headline_response =
-                serde_json::from_str::<TopHeadlinesResponse>(&response_text).unwrap();
-            Ok(headline_response)
+            match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
+                Ok(headline_response) => Ok(headline_response),
+                Err(e) => Err(ApiClientError::InvalidRequest(format!(
+                    "Failed to parse response: {}",
+                    e
+                ))),
+            }
         } else {
             let response_text = response.text()?;
             Err(self.parse_error_response(response_text))
