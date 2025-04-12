@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum ApiClientErrorCode {
     ApiKeyDisabled,

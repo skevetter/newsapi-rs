@@ -326,7 +326,7 @@ impl<T> NewsApiClient<T> {
         query_params.push(("q".to_string(), request.get_search_term().to_string()));
 
         if let Some(language) = request.get_language() {
-            query_params.push(("language".to_string(), language.to_string()));
+            query_params.push(("language".to_string(), language.to_string().to_lowercase()));
         }
 
         if let Some(start_date) = request.get_start_date() {
@@ -346,5 +346,178 @@ impl<T> NewsApiClient<T> {
         }
 
         query_params
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{Country, Language, NewsCategory};
+    use chrono::{DateTime, Utc};
+    use mockito::{self};
+    use std::collections::HashMap;
+    use std::str::FromStr;
+
+    // Helper function to create a client with mocked base URL
+    fn create_test_client() -> NewsApiClient<reqwest::Client> {
+        let api_key = "test-api-key";
+        let mut client = NewsApiClient::new_async(api_key);
+        // Get the mock server URL - using server_address() instead of server_url()
+        let server = mockito::Server::new();
+        let mock_url = server.url();
+        client.base_url = Url::parse(&format!("http://{}", mock_url)).unwrap();
+        client
+    }
+
+    #[test]
+    fn test_parse_error_response() {
+        // Test API key error
+        let error_json =
+            r#"{"status":"error","code":"apiKeyInvalid","message":"Your API key is invalid"}"#;
+        let error =
+            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+
+        match error {
+            ApiClientError::InvalidResponse(response) => {
+                assert_eq!(response.status, "error");
+                assert_eq!(response.code, ApiClientErrorCode::ApiKeyInvalid);
+                assert_eq!(response.message, "Your API key is invalid");
+            }
+            _ => panic!("Expected InvalidResponse error"),
+        }
+
+        // Test parameter error
+        let error_json =
+            r#"{"status":"error","code":"parameterInvalid","message":"Invalid parameter"}"#;
+        let error =
+            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+
+        match error {
+            ApiClientError::InvalidResponse(response) => {
+                assert_eq!(response.code, ApiClientErrorCode::ParameterInvalid);
+            }
+            _ => panic!("Expected InvalidResponse error"),
+        }
+
+        // Test unparseable response
+        let error_json = r#"invalid json"#;
+        let error =
+            NewsApiClient::<reqwest::Client>::parse_error_response_internal(error_json.to_string());
+
+        match error {
+            ApiClientError::InvalidResponse(response) => {
+                assert_eq!(response.code, ApiClientErrorCode::UnexpectedError);
+            }
+            _ => panic!("Expected InvalidResponse error"),
+        }
+    }
+
+    #[test]
+    fn test_get_request_headers() {
+        let client = create_test_client();
+        let headers = client.get_request_headers().unwrap();
+
+        assert_eq!(
+            headers.get(AUTHORIZATION).unwrap().to_str().unwrap(),
+            "Bearer test-api-key"
+        );
+        assert_eq!(
+            headers.get(USER_AGENT).unwrap().to_str().unwrap(),
+            NEWS_API_CLIENT_USER_AGENT
+        );
+    }
+
+    #[test]
+    fn test_top_headlines_validate_request() {
+        // Valid request with country
+        let request = GetTopHeadlinesRequest::builder()
+            .country(Country::US)
+            .category(NewsCategory::Business)
+            .search_term(String::new())
+            .page_size(20)
+            .page(1)
+            .build()
+            .unwrap();
+        assert!(NewsApiClient::<reqwest::Client>::top_headlines_validate_request(&request).is_ok());
+
+        // Valid request with sources only
+        let request = GetTopHeadlinesRequest::builder()
+            .sources("bbc-news,cnn".to_string())
+            .search_term(String::new())
+            .page_size(20)
+            .page(1)
+            .build()
+            .unwrap();
+        assert!(NewsApiClient::<reqwest::Client>::top_headlines_validate_request(&request).is_ok());
+
+        // Invalid request with both sources and country
+        let request = GetTopHeadlinesRequest::builder()
+            .sources("bbc-news".to_string())
+            .country(Country::US)
+            .search_term(String::new())
+            .page_size(20)
+            .page(1)
+            .build();
+
+        // This should return an error from the builder
+        assert!(request.is_err());
+
+        // Invalid request with both sources and category
+        let request = GetTopHeadlinesRequest::builder()
+            .sources("bbc-news".to_string())
+            .category(NewsCategory::Business)
+            .search_term(String::new())
+            .page_size(20)
+            .page(1)
+            .build();
+
+        // This should return an error from the builder
+        assert!(request.is_err());
+    }
+
+    #[test]
+    fn test_get_top_headlines_query_params() {
+        let request = GetTopHeadlinesRequest::builder()
+            .country(Country::US)
+            .category(NewsCategory::Technology)
+            .search_term("ai".to_string())
+            .page_size(15)
+            .page(2)
+            .build()
+            .unwrap();
+
+        let params = NewsApiClient::<reqwest::Client>::get_top_headlines_query_params(&request);
+        let params_map: HashMap<_, _> = params.into_iter().collect();
+
+        assert_eq!(params_map.get("country").unwrap(), "us");
+        assert_eq!(params_map.get("category").unwrap(), "technology");
+        assert_eq!(params_map.get("q").unwrap(), "ai");
+        assert_eq!(params_map.get("page").unwrap(), "2");
+        assert_eq!(params_map.get("pageSize").unwrap(), "15");
+    }
+
+    #[test]
+    fn test_get_everything_query_params() {
+        let start_date = DateTime::<Utc>::from_str("2023-01-01T00:00:00Z").unwrap();
+        let end_date = DateTime::<Utc>::from_str("2023-01-31T23:59:59Z").unwrap();
+
+        let request = GetEverythingRequest::builder()
+            .search_term(format!("bitcoin"))
+            .language(Language::AR)
+            .start_date(start_date)
+            .end_date(end_date)
+            .page(3)
+            .page_size(20)
+            .build();
+
+        let params = NewsApiClient::<reqwest::Client>::get_everything_query_params(&request);
+        let params_map: HashMap<_, _> = params.into_iter().collect();
+
+        assert_eq!(params_map.get("q").unwrap(), "bitcoin");
+        assert_eq!(params_map.get("language").unwrap(), "ar"); // Fix expectation to "ar" instead of "en"
+        assert_eq!(params_map.get("from").unwrap(), "2023-01-01T00:00:00+00:00");
+        assert_eq!(params_map.get("to").unwrap(), "2023-01-31T23:59:59+00:00");
+        assert_eq!(params_map.get("page").unwrap(), "3");
+        assert_eq!(params_map.get("pageSize").unwrap(), "20");
     }
 }
