@@ -1,21 +1,15 @@
 /// This example requires the "blocking" feature to be enabled
 /// Run with: cargo run --example everything_search --features blocking
 use chrono::Utc;
-use env_logger::Env;
-use newsapi_rs::{
-    client::NewsApiClient,
-    constant::DEFAULT_LOG_LEVEL,
-    error::ApiClientError,
-    model::{GetEverythingRequest, Language},
-};
+use newsapi_rs::client::NewsApiClient;
+use newsapi_rs::error::ApiClientError;
+use newsapi_rs::model::{GetEverythingRequest, Language};
 
 #[cfg(feature = "blocking")]
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
-
     dotenvy::dotenv().ok();
 
-    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
+    // Provide your API key here or set it in the environment variable NEWS_API_KEY
     // let client = NewsApiClient::new("api_key");
     let client = NewsApiClient::from_env();
 

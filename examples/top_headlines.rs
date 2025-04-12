@@ -1,17 +1,11 @@
 /// This example requires the "blocking" feature to be enabled
 /// Run with: cargo run --example top_headlines --features blocking
-use env_logger::Env;
-use newsapi_rs::{
-    client::NewsApiClient,
-    constant::DEFAULT_LOG_LEVEL,
-    error::ApiClientError,
-    model::{GetTopHeadlinesRequest, NewsCategory},
-};
+use newsapi_rs::client::NewsApiClient;
+use newsapi_rs::error::ApiClientError;
+use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
 
 #[cfg(feature = "blocking")]
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
-
     dotenvy::dotenv().ok();
 
     let client = NewsApiClient::from_env();

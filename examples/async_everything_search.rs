@@ -1,18 +1,14 @@
 /// Run with: cargo run --example async_everything_search
 use chrono::Utc;
-use env_logger::Env;
 use newsapi_rs::client::NewsApiClient;
-use newsapi_rs::constant::DEFAULT_LOG_LEVEL;
 use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetEverythingRequest, Language};
 
 #[tokio::main]
 async fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
-
     dotenvy::dotenv().ok();
 
-    // Provide your API key here or set it in the environment variable NEWSAPI_API_KEY
+    // Provide your API key here or set it in the environment variable NEWS_API_KEY
     // let client = NewsApiClient::new_async("api_key");
     let client = NewsApiClient::from_env_async();
 
