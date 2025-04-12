@@ -5,19 +5,15 @@ use newsapi_rs::error::ApiClientError;
 use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
 
 fn main() {
-    // Initialize logging
     env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
 
-    // Load environment variables from .env file if present
     dotenvy::dotenv().ok();
 
-    // Create client from environment variable
     let client = NewsApiClient::from_env();
 
-    // Build top headlines request
     let request = GetTopHeadlinesRequest::builder()
         .category(NewsCategory::Business)
-        .search_term(String::from("Nvidia Stock"))
+        .search_term(String::from("china"))
         .page_size(5)
         .build();
 
