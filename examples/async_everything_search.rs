@@ -39,9 +39,13 @@ async fn main() {
         }
         Err(err) => {
             eprintln!(
-                "Error: {}",
-                match err {
-                    ApiClientError::InvalidResponse(response) => response.message.clone(),
+                "Error [{}]: {}",
+                match &err {
+                    ApiClientError::InvalidResponse(response) => response.code.to_string(),
+                    _ => err.to_string(),
+                },
+                match &err {
+                    ApiClientError::InvalidResponse(response) => response.message.to_string(),
                     _ => err.to_string(),
                 }
             );
