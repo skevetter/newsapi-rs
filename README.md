@@ -11,9 +11,7 @@ A Rust client for the [NewsAPI](https://newsapi.org/) service.
 - Builder pattern with automatic environment variable detection
 - Retry mechanisms with configurable strategies
 
-## Usage
-
-### Add to your project
+## Installation
 
 ```toml
 [dependencies]
@@ -23,100 +21,83 @@ newsapi-rs = "0.1.0"
 newsapi-rs = { version = "0.1.0", features = ["blocking"] }
 ```
 
-### Async Example (Default)
+## Client Creation
 
 ```rust
 use newsapi_rs::client::NewsApiClient;
-use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
+use newsapi_rs::retry::RetryStrategy;
+use std::time::Duration;
+
+// Async client (default)
+// Method 1: From environment variable (requires NEWS_API_KEY to be set)
+let client = NewsApiClient::from_env();
+
+// Method 2: With explicit API key
+let client = NewsApiClient::new("your-api-key");
+
+// Method 3: Using the builder pattern
+let client = NewsApiClient::builder()
+    .retry(RetryStrategy::Exponential(Duration::from_millis(100)), 3)
+    .build()
+    .expect("Failed to build NewsApiClient");
+
+// Blocking client (with 'blocking' feature)
+// Method 1: From environment variable
+let blocking_client = NewsApiClient::from_env_blocking();
+
+// Method 2: With explicit API key
+let blocking_client = NewsApiClient::new_blocking("your-api-key");
+
+// Method 3: Using the builder pattern
+let blocking_client = NewsApiClient::builder_blocking()
+    .retry(RetryStrategy::Constant(Duration::from_secs(1)), 2)
+    .build()
+    .expect("Failed to build NewsApiClient");
+```
+
+## Endpoints
+
+### 1. Top Headlines
+
+Get breaking news headlines from various news sources.
+
+#### Async Example
+
+```rust
+use newsapi_rs::client::NewsApiClient;
+use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory, Country};
 
 #[tokio::main]
 async fn main() {
-    // Create client using various methods:
+    let client = NewsApiClient::builder().build().expect("Failed to build client");
 
-    // 1. From environment variable (requires NEWS_API_KEY to be set)
-    let client = NewsApiClient::from_env();
-
-    // 2. With explicit API key
-    let client = NewsApiClient::new("your-api-key");
-
-    // 3. Using the builder pattern (checks env vars automatically if no key provided)
-    let client = NewsApiClient::builder()
-        .retry(RetryStrategy::Exponential(Duration::from_millis(100)), 3)
-        .build()
-        .expect("Failed to build NewsApiClient");
-
-    // Build request
     let request = GetTopHeadlinesRequest::builder()
+        .country(Country::US)
         .category(NewsCategory::Business)
         .search_term(String::from("Technology"))
         .page_size(5)
         .build()
         .unwrap();
 
-    // Make API call
     match client.get_top_headlines(&request).await {
         Ok(response) => {
             println!("Total Results: {}", response.get_total_results());
             for article in response.get_articles() {
                 println!("Title: {}", article.get_title());
-                // Process articles...
+                println!("  Source: {}", article.get_source().get_name());
+                println!("  URL: {}", article.get_url());
             }
         },
-        Err(err) => {
-            eprintln!("Error: {}", err);
-        }
+        Err(err) => eprintln!("Error: {}", err),
     }
 }
 ```
 
-### Blocking Example (requires 'blocking' feature)
+### 2. Everything
 
-```rust
-use newsapi_rs::client::NewsApiClient;
-use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
-use newsapi_rs::retry::RetryStrategy;
-use std::time::Duration;
+Search through millions of articles from various news sources.
 
-fn main() {
-    // Create blocking client using various methods:
-
-    // 1. From environment variable
-    let client = NewsApiClient::from_env_blocking();
-
-    // 2. With explicit API key
-    let client = NewsApiClient::new_blocking("your-api-key");
-
-    // 3. Using the builder pattern
-    let client = NewsApiClient::builder_blocking()
-        .retry(RetryStrategy::Constant(Duration::from_secs(1)), 2)
-        .build()
-        .expect("Failed to build NewsApiClient");
-
-    // Build request
-    let request = GetTopHeadlinesRequest::builder()
-        .category(NewsCategory::Business)
-        .search_term(String::from("Technology"))
-        .page_size(5)
-        .build()
-        .unwrap();
-
-    // Make API call
-    match client.get_top_headlines(&request) {
-        Ok(response) => {
-            println!("Total Results: {}", response.get_total_results());
-            for article in response.get_articles() {
-                println!("Title: {}", article.get_title());
-                // Process articles...
-            }
-        },
-        Err(err) => {
-            eprintln!("Error: {}", err);
-        }
-    }
-}
-```
-
-## Everything API Example
+#### Async Example
 
 ```rust
 use newsapi_rs::client::NewsApiClient;
@@ -125,12 +106,9 @@ use chrono::Utc;
 
 #[tokio::main]
 async fn main() {
-    // Create client (will check environment variable NEWS_API_KEY if no key provided)
-    let client = NewsApiClient::builder()
-        .build()
-        .expect("Failed to build NewsApiClient");
+    let client = NewsApiClient::builder().build().expect("Failed to build client");
 
-    let everything_request = GetEverythingRequest::builder()
+    let request = GetEverythingRequest::builder()
         .search_term(String::from("Bitcoin"))
         .language(Language::EN)
         .start_date(Utc::now() - chrono::Duration::days(7))
@@ -138,7 +116,7 @@ async fn main() {
         .page_size(10)
         .build();
 
-    match client.get_everything(&everything_request).await {
+    match client.get_everything(&request).await {
         Ok(response) => {
             println!("Found {} articles", response.get_total_results());
             for article in response.get_articles() {
@@ -146,23 +124,87 @@ async fn main() {
                 println!("  {}", article.get_url());
             }
         },
-        Err(err) => {
-            eprintln!("Error: {}", err);
-        }
+        Err(err) => eprintln!("Error: {}", err),
     }
+}
+```
+
+### 3. Sources
+
+Get information about news publishers available in the system.
+
+#### Async Example
+
+```rust
+use newsapi_rs::client::NewsApiClient;
+use newsapi_rs::model::{GetSourcesRequest, NewsCategory, Language, Country};
+
+#[tokio::main]
+async fn main() {
+    let client = NewsApiClient::builder().build().expect("Failed to build client");
+
+    let request = GetSourcesRequest::builder()
+        .category(NewsCategory::Technology)
+        .language(Language::EN)
+        .country(Country::US)
+        .build();
+
+    match client.get_sources(&request).await {
+        Ok(response) => {
+            println!("Found {} sources", response.get_sources().len());
+            for source in response.get_sources() {
+                println!("- {}", source.get_name());
+                if let Some(desc) = source.get_description() {
+                    println!("  Description: {}", desc);
+                }
+                if let Some(url) = source.get_url() {
+                    println!("  URL: {}", url);
+                }
+            }
+        },
+        Err(err) => eprintln!("Error: {}", err),
+    }
+}
+```
+
+## Blocking Examples
+
+With the `blocking` feature enabled, you can use the client without async/await:
+
+```rust
+// Top Headlines (blocking)
+let client = NewsApiClient::builder_blocking().build().expect("Failed to build client");
+let request = GetTopHeadlinesRequest::builder()
+    .country(Country::US)
+    .build()
+    .unwrap();
+
+match client.get_top_headlines(&request) {
+    Ok(response) => println!("Found {} articles", response.get_total_results()),
+    Err(err) => eprintln!("Error: {}", err),
+}
+
+// Sources (blocking)
+let sources_request = GetSourcesRequest::builder()
+    .category(NewsCategory::Technology)
+    .build();
+
+match client.get_sources(&sources_request) {
+    Ok(response) => println!("Found {} sources", response.get_sources().len()),
+    Err(err) => eprintln!("Error: {}", err),
 }
 ```
 
 ## Running Examples
 
-Run the async example:
 ```bash
+# Async examples
 cargo run --example async_everything_search
-```
+cargo run --example async_sources
 
-Run the blocking example (with the blocking feature enabled):
-```bash
+# Blocking examples (with the blocking feature enabled)
 cargo run --example everything_search --features blocking
+cargo run --example top_headlines --features blocking
 ```
 
 ## License

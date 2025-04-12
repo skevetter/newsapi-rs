@@ -7,76 +7,90 @@
 //!
 //! - Async client as the default implementation
 //! - Optional blocking client available with the `blocking` feature
-//! - Support for all NewsAPI endpoints (everything, top headlines)
+//! - Support for all NewsAPI endpoints (top headlines, everything, sources)
 //! - Strongly typed request and response models
 //! - Builder patterns for easy request construction
 //! - Automatic API key detection from environment variables
 //! - Configurable retry mechanisms with different strategies
 //!
-//! ## Usage
+//! ## Endpoints
 //!
-//! ### Async Example (Default)
+//! This library supports all three endpoints provided by NewsAPI:
+//!
+//! ### 1. Top Headlines
 //!
 //! ```rust,no_run
 //! use newsapi_rs::client::NewsApiClient;
-//! use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
+//! use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory, Country};
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     // Create client (will check for NEWS_API_KEY environment variable)
 //!     let client = NewsApiClient::builder()
 //!         .build()
 //!         .expect("Failed to build client");
 //!
-//!     // Build a request
 //!     let request = GetTopHeadlinesRequest::builder()
+//!         .country(Country::US)
 //!         .category(NewsCategory::Business)
-//!         .search_term(String::from("Technology"))
 //!         .page_size(5)
 //!         .build()
 //!         .unwrap();
 //!
-//!     // Make API call
-//!     match client.get_top_headlines(&request).await {
-//!         Ok(response) => {
-//!             println!("Total Results: {}", response.get_total_results());
-//!             // Process articles...
-//!         },
-//!         Err(err) => {
-//!             eprintln!("Error: {}", err);
-//!         }
-//!     }
+//!     let response = client.get_top_headlines(&request).await.unwrap();
+//!     println!("Found {} articles", response.get_total_results());
 //! }
 //! ```
 //!
-//! ### Blocking Example (requires 'blocking' feature)
+//! ### 2. Everything
 //!
 //! ```rust,no_run
 //! use newsapi_rs::client::NewsApiClient;
-//! use newsapi_rs::model::{GetTopHeadlinesRequest, NewsCategory};
+//! use newsapi_rs::model::{GetEverythingRequest, Language};
+//! use chrono::Utc;
 //!
-//! fn main() {
-//!     // Create blocking client
-//!     let client = NewsApiClient::builder_blocking()
+//! #[tokio::main]
+//! async fn main() {
+//!     let client = NewsApiClient::builder()
 //!         .build()
 //!         .expect("Failed to build client");
 //!
-//!     // Build request
-//!     let request = GetTopHeadlinesRequest::builder()
-//!         .category(NewsCategory::Business)
-//!         .search_term(String::from("Technology"))
-//!         .page_size(5)
-//!         .build()
-//!         .unwrap();
+//!     let request = GetEverythingRequest::builder()
+//!         .search_term("Bitcoin".to_string())
+//!         .language(Language::EN)
+//!         .start_date(Utc::now() - chrono::Duration::days(7))
+//!         .build();
 //!
-//!     // Make API call
-//!     match client.get_top_headlines(&request) {
-//!         Ok(response) => {
-//!             println!("Total Results: {}", response.get_total_results());
-//!             // Process articles...
-//!         },
-//!         Err(err) => {
-//!             eprintln!("Error: {}", err);
+//!     let response = client.get_everything(&request).await.unwrap();
+//!     println!("Found {} articles", response.get_total_results());
+//! }
+//! ```
+//!
+//! ### 3. Sources
+//!
+//! ```rust,no_run
+//! use newsapi_rs::client::NewsApiClient;
+//! use newsapi_rs::model::{GetSourcesRequest, NewsCategory, Language};
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let client = NewsApiClient::builder()
+//!         .build()
+//!         .expect("Failed to build client");
+//!
+//!     let request = GetSourcesRequest::builder()
+//!         .category(NewsCategory::Technology)
+//!         .language(Language::EN)
+//!         .build();
+//!
+//!     let response = client.get_sources(&request).await.unwrap();
+//!     println!("Found {} sources", response.get_sources().len());
+//!
+//!     // Print out the first source info
+//!     if !response.get_sources().is_empty() {
+//!         let source = &response.get_sources()[0];
+//!         println!("Name: {}", source.get_name());
+//!         if let Some(desc) = source.get_description() {
+//!             println!("Description: {}", desc);
 //!         }
 //!     }
 //! }
