@@ -9,6 +9,7 @@ use newsapi_rs::{
     model::{GetEverythingRequest, Language},
 };
 
+#[cfg(feature = "blocking")]
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
 
