@@ -1,0 +1,99 @@
+name: Rust
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+env:
+    CARGO_TERM_COLOR: always
+    NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Set up cache
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      target
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-cargo-
+
+            - name: Install latest stable
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+                  components: rustfmt, clippy
+
+            - name: Format check
+              run: cargo fmt --all -- --check
+
+            - name: Clippy check
+              run: cargo clippy -- -D warnings
+
+            - name: Build
+              run: cargo build --verbose
+
+            - name: Run tests
+              run: cargo test --verbose
+
+            - name: Build with all features
+              run: cargo build --all-features --verbose
+
+            - name: Run tests with all features
+              run: cargo test --all-features --verbose
+
+            - name: Build documentation
+              run: cargo doc --no-deps
+
+    coverage:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Install latest stable
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+
+            - name: Install cargo-tarpaulin
+              run: cargo install cargo-tarpaulin
+
+            - name: Generate code coverage
+              run: |
+                  cargo tarpaulin --verbose --workspace --timeout 120 --out Xml
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  fail_ci_if_error: false
+
+    audit:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Install latest stable
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+
+            - name: Install cargo-audit
+              run: cargo install cargo-audit
+
+            - name: Run security audit
+              run: cargo audit
