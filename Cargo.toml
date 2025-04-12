@@ -2,6 +2,16 @@
 name = "newsapi-rs"
 version = "0.1.0"
 edition = "2021"
+description = "A Rust client for the NewsAPI service"
+license = "MIT"
+
+[lib]
+name = "newsapi_rs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "newsapi"
+path = "src/main.rs"
 
 [dependencies]
 chrono = { version = "0.4.39", features = ["serde"] }

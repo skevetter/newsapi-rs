@@ -1,14 +1,9 @@
-mod client;
-mod constant;
-mod error;
-mod model;
-
 use chrono::{TimeZone, Utc};
-use client::NewsApiClient;
-use constant::DEFAULT_LOG_LEVEL;
 use env_logger::Env;
-use error::ApiClientError;
-use model::{GetEverythingRequest, GetTopHeadlinesRequest, Language, NewsCategory};
+use newsapi_rs::client::NewsApiClient;
+use newsapi_rs::constant::DEFAULT_LOG_LEVEL;
+use newsapi_rs::error::ApiClientError;
+use newsapi_rs::model::{GetEverythingRequest, GetTopHeadlinesRequest, Language, NewsCategory};
 
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_LEVEL)).init();
@@ -27,9 +22,9 @@ fn main() {
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(Utc.with_ymd_and_hms(2025, 2, 13, 0, 0, 0).unwrap())
+        .start_date(Utc.with_ymd_and_hms(2025, 3, 14, 0, 0, 0).unwrap())
         .end_date(Utc.with_ymd_and_hms(2025, 3, 20, 0, 0, 0).unwrap())
-        .page_size(5)
+        .page_size(1)
         .build();
     match client.get_everything(&everything_request) {
         Ok(everything_response) => {

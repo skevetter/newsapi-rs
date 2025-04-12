@@ -236,7 +236,7 @@ impl<T> NewsApiClient<T> {
             query_params.push(("to".to_string(), end_date.to_rfc3339()));
         }
 
-        if *request.get_page_size() > 1 {
+        if *request.get_page_size() > 0 {
             query_params.push(("pageSize".to_string(), request.get_page_size().to_string()));
         }
 
