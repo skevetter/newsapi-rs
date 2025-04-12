@@ -526,6 +526,151 @@ mod tests {
         assert_eq!(params_map.get("pageSize").unwrap(), "20");
     }
 
+    #[tokio::test]
+    async fn test_get_everything_async() {
+        let mock_response = r#"{
+            "status": "ok",
+            "totalResults": 2,
+            "articles": [
+                {
+                    "source": {"id": "test-source", "name": "Test Source"},
+                    "author": "Test Author",
+                    "title": "Test Title",
+                    "description": "Test Description",
+                    "url": "https://example.com/article1",
+                    "urlToImage": "https://example.com/image1.jpg",
+                    "publishedAt": "2023-05-01T12:00:00Z",
+                    "content": "Test content"
+                },
+                {
+                    "source": {"id": "test-source-2", "name": "Test Source 2"},
+                    "author": "Test Author 2",
+                    "title": "Test Title 2",
+                    "description": "Test Description 2",
+                    "url": "https://example.com/article2",
+                    "urlToImage": "https://example.com/image2.jpg",
+                    "publishedAt": "2023-05-02T12:00:00Z",
+                    "content": "Test content 2"
+                }
+            ]
+        }"#;
+
+        // Create a mock server using the async version
+        let mut server = mockito::Server::new_async().await;
+
+        // Set up the mock directly on the server
+        let _m = server
+            .mock("GET", "/v2/everything")
+            .match_query(mockito::Matcher::Any)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(mock_response)
+            .create_async()
+            .await;
+
+        // Create a client using the server URL
+        let mut client = NewsApiClient::new_async("test-api-key");
+        client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
+
+        let request = GetEverythingRequest::builder()
+            .search_term(format!("test"))
+            .build();
+
+        let response = client.get_everything(&request).await.unwrap();
+
+        assert_eq!(response.get_status(), "ok");
+        assert_eq!(*response.get_total_results(), 2);
+        assert_eq!(response.get_articles().len(), 2);
+        assert_eq!(response.get_articles()[0].get_title(), "Test Title");
+        assert_eq!(response.get_articles()[1].get_title(), "Test Title 2");
+    }
+
+    #[tokio::test]
+    async fn test_get_top_headlines_async() {
+        let mock_response = r#"{
+            "status": "ok",
+            "totalResults": 1,
+            "articles": [
+                {
+                    "source": {"id": "test-source", "name": "Test Source"},
+                    "author": "Test Author",
+                    "title": "Breaking News",
+                    "description": "Test Description",
+                    "url": "https://example.com/article1",
+                    "urlToImage": "https://example.com/image1.jpg",
+                    "publishedAt": "2023-05-01T12:00:00Z",
+                    "content": "Test content"
+                }
+            ]
+        }"#;
+
+        let mut server = mockito::Server::new_async().await;
+        let _m = server
+            .mock("GET", "/v2/top-headlines")
+            .match_query(mockito::Matcher::Any)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(mock_response)
+            .create_async()
+            .await;
+        let mut client = NewsApiClient::new_async("test-api-key");
+        client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
+
+        let request = GetTopHeadlinesRequest::builder()
+            .country(Country::US)
+            .search_term(String::new())
+            .page_size(20)
+            .page(1)
+            .build()
+            .unwrap();
+
+        let response = client.get_top_headlines(&request).await.unwrap();
+
+        assert_eq!(response.get_status(), "ok");
+        assert_eq!(*response.get_total_results(), 1);
+        assert_eq!(response.get_articles().len(), 1);
+        assert_eq!(response.get_articles()[0].get_title(), "Breaking News");
+    }
+
+    #[tokio::test]
+    async fn test_error_responses_async() {
+        let error_response = r#"{
+            "status": "error",
+            "code": "apiKeyInvalid",
+            "message": "Your API key is invalid or incorrect"
+        }"#;
+
+        // Create a mock server using the async version
+        let mut server = mockito::Server::new_async().await;
+
+        // Set up the mock directly on the server
+        let _m = server
+            .mock("GET", "/v2/everything")
+            .match_query(mockito::Matcher::Any)
+            .with_status(401)
+            .with_body(error_response)
+            .create_async()
+            .await;
+
+        // Create a client using the server URL
+        let mut client = NewsApiClient::new_async("test-api-key");
+        client.base_url = Url::parse(&format!("{}", server.url())).unwrap();
+
+        let request = GetEverythingRequest::builder()
+            .search_term(format!("test"))
+            .build();
+
+        let result = client.get_everything(&request).await;
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            ApiClientError::InvalidResponse(response) => {
+                assert_eq!(response.code, ApiClientErrorCode::ApiKeyInvalid);
+            }
+            _ => panic!("Expected InvalidResponse error"),
+        }
+    }
+
     // Test for the blocking client would require the 'blocking' feature
     #[cfg(feature = "blocking")]
     mod blocking_tests {
