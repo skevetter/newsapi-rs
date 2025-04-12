@@ -11,6 +11,8 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: build
         run: |
           cargo build --all-features
