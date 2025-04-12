@@ -1,4 +1,7 @@
-use crate::constant::{NEWS_API_CLIENT_USER_AGENT, NEWS_API_KEY_ENV};
+use crate::constant::{
+    EVERYTHING_ENDPOINT, NEWS_API_CLIENT_USER_AGENT, NEWS_API_KEY_ENV, NEWS_API_URI,
+    TOP_HEADLINES_ENDPOINT,
+};
 use crate::error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 use crate::model::{
     GetEverythingRequest, GetEverythingResponse, GetTopHeadlinesRequest, TopHeadlinesResponse,
@@ -8,10 +11,6 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
 use serde::{Deserialize, Serialize};
 use std::env;
 use url::Url;
-
-const NEWS_API_URI: &str = "https://newsapi.org/";
-const TOP_HEADLINES_ENDPOINT: &str = "/v2/top-headlines";
-const EVERYTHING_ENDPOINT: &str = "/v2/everything";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct NewsApiErrorResponse {
