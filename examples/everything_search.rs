@@ -1,4 +1,4 @@
-use chrono::{TimeZone, Utc};
+use chrono::Utc;
 use env_logger::Env;
 use newsapi_rs::client::NewsApiClient;
 use newsapi_rs::constant::DEFAULT_LOG_LEVEL;
@@ -12,11 +12,13 @@ fn main() {
 
     let client = NewsApiClient::from_env();
 
+    let last_month = Utc::now() - chrono::Duration::days(30);
+
     let everything_request = GetEverythingRequest::builder()
         .search_term(String::from("Nvidia+NVDA+stock"))
         .language(Language::EN)
-        .start_date(Utc.with_ymd_and_hms(2025, 3, 14, 0, 0, 0).unwrap())
-        .end_date(Utc.with_ymd_and_hms(2025, 3, 20, 0, 0, 0).unwrap())
+        .start_date(last_month)
+        .end_date(Utc::now())
         .page_size(1)
         .build();
 
