@@ -38,14 +38,20 @@ pub struct NewsApiClientBuilder {
     max_retries: usize,
 }
 
-impl NewsApiClientBuilder {
-    pub fn new() -> Self {
+impl Default for NewsApiClientBuilder {
+    fn default() -> Self {
         Self {
             api_key: None,
             base_url: Some(Url::parse(NEWS_API_URI).unwrap()),
             retry_strategy: RetryStrategy::default(),
             max_retries: 0,
         }
+    }
+}
+
+impl NewsApiClientBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn api_key(mut self, api_key: impl Into<String>) -> Self {
@@ -108,14 +114,21 @@ pub struct BlockingNewsApiClientBuilder {
 }
 
 #[cfg(feature = "blocking")]
-impl BlockingNewsApiClientBuilder {
-    pub fn new() -> Self {
+impl Default for BlockingNewsApiClientBuilder {
+    fn default() -> Self {
         Self {
             api_key: None,
             base_url: Some(Url::parse(NEWS_API_URI).unwrap()),
             retry_strategy: RetryStrategy::default(),
             max_retries: 0,
         }
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl BlockingNewsApiClientBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn api_key(mut self, api_key: impl Into<String>) -> Self {

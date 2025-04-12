@@ -1,18 +1,13 @@
 use std::future::Future;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum RetryStrategy {
+    #[default]
     None,
     Constant(Duration),
     Linear(Duration),
     Exponential(Duration),
-}
-
-impl Default for RetryStrategy {
-    fn default() -> Self {
-        RetryStrategy::None
-    }
 }
 
 pub async fn retry<F, T, E, Fut>(
