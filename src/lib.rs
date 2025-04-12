@@ -8,7 +8,6 @@ pub mod error;
 pub mod model;
 pub mod retry;
 
-// Re-export commonly used items for convenience
 pub use client::NewsApiClient;
 pub use error::{ApiClientError, ApiClientErrorCode, ApiClientErrorResponse};
 pub use model::{
