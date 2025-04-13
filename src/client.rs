@@ -671,6 +671,7 @@ mod tests {
     use crate::model::{Country, Language, NewsCategory};
     use chrono::{DateTime, Utc};
     use mockito;
+    use serial_test::serial;
     use std::collections::HashMap;
     use std::str::FromStr;
     use std::time::Duration;
@@ -1040,15 +1041,23 @@ mod tests {
         assert_eq!(client.max_retries, 3);
     }
 
+    #[serial]
     #[test]
     fn test_builder_failure() {
-        let old_value = std::env::var(NEWS_API_KEY_ENV).ok();
-        std::env::remove_var(NEWS_API_KEY_ENV);
+        let api_key = std::env::var(NEWS_API_KEY_ENV).ok();
+
+        struct Defer<'a>(&'a str, Option<String>);
+        impl<'a> Drop for Defer<'a> {
+            fn drop(&mut self) {
+                match &self.1 {
+                    Some(val) => std::env::set_var(self.0, val),
+                    None => std::env::remove_var(self.0),
+                }
+            }
+        }
+        let _defer = Defer(NEWS_API_KEY_ENV, api_key);
         let result = NewsApiClient::builder().build();
 
-        if let Some(val) = old_value {
-            std::env::set_var(NEWS_API_KEY_ENV, val);
-        }
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
@@ -1059,14 +1068,25 @@ mod tests {
         );
     }
 
+    #[serial]
     #[test]
     fn test_builder_from_env() {
+        let api_key = std::env::var(NEWS_API_KEY_ENV).ok();
         std::env::set_var(NEWS_API_KEY_ENV, "env-api-key");
 
-        let client = NewsApiClientBuilder::from_env().build().unwrap();
+        struct Defer<'a>(&'a str, Option<String>);
+        impl<'a> Drop for Defer<'a> {
+            fn drop(&mut self) {
+                match &self.1 {
+                    Some(val) => std::env::set_var(self.0, val),
+                    None => std::env::remove_var(self.0),
+                }
+            }
+        }
+        let _defer = Defer(NEWS_API_KEY_ENV, api_key);
 
-        assert_eq!(client.api_key, "env-api-key");
-        std::env::remove_var(NEWS_API_KEY_ENV);
+        let result = NewsApiClientBuilder::from_env().build().unwrap();
+        assert_eq!(result.api_key, "env-api-key");
     }
 
     #[cfg(feature = "blocking")]
