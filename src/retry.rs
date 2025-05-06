@@ -33,10 +33,10 @@ where
                             RetryStrategy::Constant(d) => d,
                             RetryStrategy::Linear(d) => {
                                 Duration::from_millis((d.as_millis() as u64) * (attempt + 1) as u64)
-                            },
-                            RetryStrategy::Exponential(d) => {
-                                Duration::from_millis((d.as_millis() as u64) * (2_u64.pow(attempt as u32)))
-                            },
+                            }
+                            RetryStrategy::Exponential(d) => Duration::from_millis(
+                                (d.as_millis() as u64) * (2_u64.pow(attempt as u32)),
+                            ),
                         };
                         tokio::time::sleep(delay).await;
                         attempt += 1;
@@ -71,10 +71,10 @@ where
                             RetryStrategy::Constant(d) => d,
                             RetryStrategy::Linear(d) => {
                                 Duration::from_millis((d.as_millis() as u64) * (attempt + 1) as u64)
-                            },
-                            RetryStrategy::Exponential(d) => {
-                                Duration::from_millis((d.as_millis() as u64) * (2_u64.pow(attempt as u32)))
-                            },
+                            }
+                            RetryStrategy::Exponential(d) => Duration::from_millis(
+                                (d.as_millis() as u64) * (2_u64.pow(attempt as u32)),
+                            ),
                         };
                         std::thread::sleep(delay);
                         attempt += 1;
@@ -96,7 +96,8 @@ mod tests {
         let result = retry(RetryStrategy::None, 3, || async {
             counter.set(counter.get() + 1);
             Ok::<_, ()>(counter.get())
-        }).await;
+        })
+        .await;
 
         assert_eq!(result.unwrap(), 1);
         assert_eq!(counter.get(), 1);
@@ -105,14 +106,19 @@ mod tests {
     #[tokio::test]
     async fn test_retry_constant() {
         let counter = std::cell::Cell::new(0);
-        let result = retry(RetryStrategy::Constant(Duration::from_millis(1)), 3, || async {
-            counter.set(counter.get() + 1);
-            if counter.get() < 3 {
-                Err("error")
-            } else {
-                Ok(counter.get())
-            }
-        }).await;
+        let result = retry(
+            RetryStrategy::Constant(Duration::from_millis(1)),
+            3,
+            || async {
+                counter.set(counter.get() + 1);
+                if counter.get() < 3 {
+                    Err("error")
+                } else {
+                    Ok(counter.get())
+                }
+            },
+        )
+        .await;
 
         assert_eq!(result.unwrap(), 3);
         assert_eq!(counter.get(), 3);
@@ -121,10 +127,15 @@ mod tests {
     #[tokio::test]
     async fn test_retry_exhausted() {
         let counter = std::cell::Cell::new(0);
-        let result = retry(RetryStrategy::Constant(Duration::from_millis(1)), 2, || async {
-            counter.set(counter.get() + 1);
-            Err::<i32, _>("always fails")
-        }).await;
+        let result = retry(
+            RetryStrategy::Constant(Duration::from_millis(1)),
+            2,
+            || async {
+                counter.set(counter.get() + 1);
+                Err::<i32, _>("always fails")
+            },
+        )
+        .await;
 
         assert!(result.is_err());
         assert_eq!(counter.get(), 3); // Initial attempt + 2 retries

@@ -22,3 +22,5 @@ repos:
       - id: cargo-check
       - id: clippy
       - id: test
+      - id: fmt
+        files: \.rs$
