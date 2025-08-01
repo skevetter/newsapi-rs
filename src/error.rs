@@ -56,8 +56,8 @@ impl fmt::Display for ApiClientErrorCode {
 impl fmt::Display for ApiClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ApiClientError::Http(err) => write!(f, "HTTP error: {}", err),
-            ApiClientError::InvalidRequest(msg) => write!(f, "Invalid request: {}", msg),
+            ApiClientError::Http(err) => write!(f, "HTTP error: {err}"),
+            ApiClientError::InvalidRequest(msg) => write!(f, "Invalid request: {msg}"),
             ApiClientError::InvalidResponse(response) => {
                 write!(
                     f,
@@ -65,7 +65,7 @@ impl fmt::Display for ApiClientError {
                     response.status, response.code, response.message
                 )
             }
-            ApiClientError::InvalidHeaderValue(err) => write!(f, "Invalid header value: {}", err),
+            ApiClientError::InvalidHeaderValue(err) => write!(f, "Invalid header value: {err}"),
         }
     }
 }
