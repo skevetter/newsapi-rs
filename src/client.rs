@@ -73,7 +73,7 @@ impl NewsApiClientBuilder {
     pub fn from_env() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
             Ok(api_key) => Self::new().api_key(api_key),
-            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+            Err(_) => panic!("{NEWS_API_KEY_ENV} is not set"),
         }
     }
 
@@ -84,8 +84,7 @@ impl NewsApiClientBuilder {
                 Ok(key) => key,
                 Err(_) => {
                     return Err(format!(
-                        "API key must be provided either explicitly or via {} environment variable",
-                        NEWS_API_KEY_ENV
+                        "API key must be provided either explicitly or via {NEWS_API_KEY_ENV} environment variable"
                     ))
                 }
             },
@@ -150,7 +149,7 @@ impl BlockingNewsApiClientBuilder {
     pub fn from_env() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
             Ok(api_key) => Self::new().api_key(api_key),
-            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+            Err(_) => panic!("{NEWS_API_KEY_ENV} is not set"),
         }
     }
 
@@ -161,8 +160,7 @@ impl BlockingNewsApiClientBuilder {
                 Ok(key) => key,
                 Err(_) => {
                     return Err(format!(
-                        "API key must be provided either explicitly or via {} environment variable",
-                        NEWS_API_KEY_ENV
+                        "API key must be provided either explicitly or via {NEWS_API_KEY_ENV} environment variable",
                     ))
                 }
             },
@@ -214,7 +212,7 @@ mod blocking {
             request: &GetEverythingRequest,
         ) -> Result<GetEverythingResponse, ApiClientError> {
             retry_blocking(self.retry_strategy, self.max_retries, || {
-                log::debug!("Request: {:?}", request);
+                log::debug!("Request: {request:?}");
 
                 let mut url = self.base_url.clone();
                 NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_everything(
@@ -225,13 +223,13 @@ mod blocking {
                 let headers = self.get_request_headers()?;
                 let response = self.client.get(url.as_str()).headers(headers).send()?;
                 let status = response.status();
-                log::debug!("Response status: {:?}", status);
+                log::debug!("Response status: {status:?}");
 
                 if status.is_success() {
                     let response_text = response.text()?;
                     match serde_json::from_str::<GetEverythingResponse>(&response_text) {
                         Ok(everything_response) => Ok(everything_response),
-                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{e}"))),
                     }
                 } else {
                     let response_text = response.text()?;
@@ -245,7 +243,7 @@ mod blocking {
             request: &GetTopHeadlinesRequest,
         ) -> Result<TopHeadlinesResponse, ApiClientError> {
             retry_blocking(self.retry_strategy, self.max_retries, || {
-                log::debug!("Request: {:?}", request);
+                log::debug!("Request: {request:?}");
                 NewsApiClient::<BlockingClient>::top_headlines_validate_request(request)?;
 
                 let mut url = self.base_url.clone();
@@ -257,15 +255,14 @@ mod blocking {
                 let headers = self.get_request_headers()?;
                 let response = self.client.get(url.as_str()).headers(headers).send()?;
                 let status = response.status();
-                log::debug!("Response status: {:?}", status);
+                log::debug!("Response status: {status:?}");
 
                 if status.is_success() {
                     let response_text = response.text()?;
                     match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
                         Ok(headline_response) => Ok(headline_response),
                         Err(e) => Err(ApiClientError::InvalidRequest(format!(
-                            "Failed to parse response: {}",
-                            e
+                            "Failed to parse response: {e}"
                         ))),
                     }
                 } else {
@@ -280,24 +277,24 @@ mod blocking {
             request: &GetSourcesRequest,
         ) -> Result<GetSourcesResponse, ApiClientError> {
             retry_blocking(self.retry_strategy, self.max_retries, || {
-                log::debug!("Request: {:?}", request);
+                log::debug!("Request: {request:?}");
 
                 let mut url = self.base_url.clone();
                 NewsApiClient::<BlockingClient>::get_endpoint_with_query_params_for_sources(
                     &mut url, request,
                 );
-                log::debug!("Request URL: {}", url.as_str());
+                log::debug!("Request URL: {url}");
 
                 let headers = self.get_request_headers()?;
                 let response = self.client.get(url.as_str()).headers(headers).send()?;
                 let status = response.status();
-                log::debug!("Response status: {:?}", status);
+                log::debug!("Response status: {status:?}");
 
                 if status.is_success() {
                     let response_text = response.text()?;
                     match serde_json::from_str::<GetSourcesResponse>(&response_text) {
                         Ok(sources_response) => Ok(sources_response),
-                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                        Err(e) => Err(ApiClientError::InvalidRequest(format!("{e}"))),
                     }
                 } else {
                     let response_text = response.text()?;
@@ -332,7 +329,7 @@ impl NewsApiClient<reqwest::Client> {
     pub fn from_env() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
             Ok(api_key) => NewsApiClient::new(&api_key),
-            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+            Err(_) => panic!("{NEWS_API_KEY_ENV} is not set"),
         }
     }
 
@@ -345,11 +342,11 @@ impl NewsApiClient<reqwest::Client> {
         request: &GetEverythingRequest,
     ) -> Result<GetEverythingResponse, ApiClientError> {
         retry(self.retry_strategy, self.max_retries, || async {
-            log::debug!("Request: {:?}", request);
+            log::debug!("Request: {request:?}");
 
             let mut url = self.base_url.clone();
             Self::get_endpoint_with_query_params_for_everything(&mut url, request);
-            log::debug!("Request URL: {}", url.as_str());
+            log::debug!("Request URL: {url}");
 
             let headers = self.get_request_headers()?;
             let response = self
@@ -359,13 +356,13 @@ impl NewsApiClient<reqwest::Client> {
                 .send()
                 .await?;
             let status = response.status();
-            log::debug!("Response status: {:?}", status);
+            log::debug!("Response status: {status:?}");
 
             if status.is_success() {
                 let response_text = response.text().await?;
                 match serde_json::from_str::<GetEverythingResponse>(&response_text) {
                     Ok(everything_response) => Ok(everything_response),
-                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{e}"))),
                 }
             } else {
                 let response_text = response.text().await?;
@@ -380,12 +377,12 @@ impl NewsApiClient<reqwest::Client> {
         request: &GetTopHeadlinesRequest,
     ) -> Result<TopHeadlinesResponse, ApiClientError> {
         retry(self.retry_strategy, self.max_retries, || async {
-            log::debug!("Request: {:?}", request);
+            log::debug!("Request: {request:?}");
             Self::top_headlines_validate_request(request)?;
 
             let mut url = self.base_url.clone();
             Self::get_endpoint_with_query_params_for_top_headlines(&mut url, request);
-            log::debug!("Request URL: {}", url.as_str());
+            log::debug!("Request URL: {url}");
 
             let headers = self.get_request_headers()?;
             let response = self
@@ -395,15 +392,14 @@ impl NewsApiClient<reqwest::Client> {
                 .send()
                 .await?;
             let status = response.status();
-            log::debug!("Response status: {:?}", status);
+            log::debug!("Response status: {status:?}");
 
             if status.is_success() {
                 let response_text = response.text().await?;
                 match serde_json::from_str::<TopHeadlinesResponse>(&response_text) {
                     Ok(headline_response) => Ok(headline_response),
                     Err(e) => Err(ApiClientError::InvalidRequest(format!(
-                        "Failed to parse response: {}",
-                        e
+                        "Failed to parse response: {e}"
                     ))),
                 }
             } else {
@@ -419,11 +415,11 @@ impl NewsApiClient<reqwest::Client> {
         request: &GetSourcesRequest,
     ) -> Result<GetSourcesResponse, ApiClientError> {
         retry(self.retry_strategy, self.max_retries, || async {
-            log::debug!("Request: {:?}", request);
+            log::debug!("Request: {request:?}");
 
             let mut url = self.base_url.clone();
             Self::get_endpoint_with_query_params_for_sources(&mut url, request);
-            log::debug!("Request URL: {}", url.as_str());
+            log::debug!("Request URL: {url}");
 
             let headers = self.get_request_headers()?;
             let response = self
@@ -433,13 +429,13 @@ impl NewsApiClient<reqwest::Client> {
                 .send()
                 .await?;
             let status = response.status();
-            log::debug!("Response status: {:?}", status);
+            log::debug!("Response status: {status:?}");
 
             if status.is_success() {
                 let response_text = response.text().await?;
                 match serde_json::from_str::<GetSourcesResponse>(&response_text) {
                     Ok(sources_response) => Ok(sources_response),
-                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{}", e))),
+                    Err(e) => Err(ApiClientError::InvalidRequest(format!("{e}"))),
                 }
             } else {
                 let response_text = response.text().await?;
@@ -461,7 +457,7 @@ impl NewsApiClient<reqwest::blocking::Client> {
     pub fn from_env_blocking() -> Self {
         match env::var(NEWS_API_KEY_ENV) {
             Ok(api_key) => Self::new_blocking(&api_key),
-            Err(_) => panic!("{} is not set", NEWS_API_KEY_ENV),
+            Err(_) => panic!("{NEWS_API_KEY_ENV} is not set"),
         }
     }
 }
