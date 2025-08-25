@@ -1,5 +1,9 @@
+# Automatically merge dependabot PRs
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions
 name: Dependabot auto-merge
-on: pull_request
+
+on:
+  pull_request:
 
 permissions:
   contents: write
@@ -16,7 +20,13 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable auto-merge for Dependabot PRs
+      - name: Approve PR
+        run: gh pr review "$PR_URL" --approve
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Merge PR
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
         run: |
           gh pr merge \
@@ -27,3 +37,7 @@ jobs:
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - if: failure()
+        run: |
+          echo ${{ github.event }}
