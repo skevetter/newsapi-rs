@@ -33,7 +33,7 @@ blocking = ["reqwest/blocking"]
 chrono = { version = "0.4.41", features = ["serde"] }
 getset = "0.1.6"
 log = "0.4.22"
-regex = "1.11.1"
+regex = "1.11.2"
 reqwest = { version = "0.12.23", features = ["json"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_derive = "1.0.217"
