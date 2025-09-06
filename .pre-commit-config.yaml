@@ -17,7 +17,7 @@ repos:
           - "@commitlint/config-conventional"
         verbose: true
   - repo: https://github.com/FeryET/pre-commit-rust
-    rev: v1.1.1
+    rev: v1.2.1
     hooks:
       - id: cargo-check
       - id: clippy
