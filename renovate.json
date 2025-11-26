@@ -1,3 +1,11 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "automerge": true,
+  "extends": ["config:recommended"],
+  "minimumReleaseAge": "30 days",
+  "pre-commit": {
+    "enabled": true
+  },
+  "dependencyDashboard": false,
+  "gitAuthor": "Renovate Bot <renovate@whitesourcesoftware.com>"
 }
