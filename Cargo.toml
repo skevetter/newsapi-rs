@@ -45,5 +45,5 @@ validator = { version = "0.20.0", features = ["derive"] }
 
 [dev-dependencies]
 dotenvy = "0.15.7"
-mockito = "1.7.1"
+mockito = "1.7.2"
 serial_test = "3.2.0"
