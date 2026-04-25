@@ -32,7 +32,7 @@ jobs:
             ${{ secrets.BITWARDEN_CODECOV_TOKEN_UUID }} > CODECOV_TOKEN
 
       - name: upload coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ env.CODECOV_TOKEN }}
           exclude: target
