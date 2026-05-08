@@ -25,7 +25,7 @@ jobs:
           cargo tarpaulin --engine llvm --out Lcov
 
       - name: get secrets
-        uses: bitwarden/sm-action@v2
+        uses: bitwarden/sm-action@v3.0.0
         with:
           access_token: ${{ secrets.BITWARDEN_SECRETS_ACCESS_TOKEN }}
           secrets: |
