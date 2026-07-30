@@ -82,6 +82,23 @@ When adding new features:
 2. Increase version numbers in Cargo.toml and other files following [SemVer](http://semver.org/)
 3. The pull request will be merged once it passes CI and is reviewed by maintainers
 
+## Publishing Releases
+
+For maintainers: To publish a new version to crates.io:
+
+1. Update the version in `Cargo.toml` following [SemVer](http://semver.org/)
+2. Commit the version change and create a git tag:
+   ```
+   git tag -a v0.1.1 -m "Release version 0.1.1"
+   git push origin v0.1.1
+   ```
+3. The GitHub Actions workflow will automatically:
+   - Verify the tag version matches `Cargo.toml`
+   - Run all tests
+   - Publish to crates.io using the `CARGO_REGISTRY_TOKEN` secret
+
+Note: The `CARGO_REGISTRY_TOKEN` secret must be configured in the repository settings with a valid crates.io API token.
+
 ## Testing
 
 - Write tests for all new features and bug fixes
